@@ -259,6 +259,32 @@ export default function Home() {
             </div>
           </div>
         </section>
+        {/* FINAL CTA */}
+<section className="px-6 pb-32">
+  <div className="max-w-4xl mx-auto border border-zinc-800 bg-zinc-900 rounded-[2rem] p-10 md:p-14 text-center">
+    <p className="text-sm uppercase tracking-[0.3em] text-zinc-400 mb-4">
+      Start building with Repflow
+    </p>
+
+    <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+      Coaching tools built to keep athletes locked in.
+    </h2>
+
+    <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-8 mb-10">
+      Create programs, track progress, drive competition, and give your athletes
+      a system they actually want to use.
+    </p>
+
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <button className="bg-white text-black px-6 py-3 rounded-full font-semibold hover:opacity-90 transition">
+        Get Started
+      </button>
+      <button className="border border-zinc-700 px-6 py-3 rounded-full font-semibold hover:bg-zinc-800 transition">
+        Book a Demo
+      </button>
+    </div>
+  </div>
+</section>
       </main>
     </>
   );
