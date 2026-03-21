@@ -3,7 +3,7 @@ export default function Home() {
     <>
       <nav className="fixed top-0 left-0 w-full z-50 bg-black/70 backdrop-blur border-b border-zinc-900">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
-          <div className="font-semibold text-lg">Repflow</div>
+          <div className="font-bold text-lg tracking-tight">Repflow</div>
 
           <div className="flex items-center gap-4">
             <button className="text-zinc-400 hover:text-white transition">
@@ -16,7 +16,7 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="bg-black text-white min-h-screen pt-24">
+      <main className="bg-black text-white min-h-screen pt-24 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_60%)]">
         {/* HERO */}
         <section className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
           <p className="text-sm uppercase tracking-[0.3em] text-zinc-400 mb-6">
@@ -24,7 +24,7 @@ export default function Home() {
           </p>
 
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight max-w-5xl leading-tight">
-            Track harder. Compete smarter. Build better athletes.
+            Track harder. Compete smarter. Win more.
           </h1>
 
           <p className="mt-6 max-w-2xl text-zinc-400 text-lg md:text-xl leading-8">
