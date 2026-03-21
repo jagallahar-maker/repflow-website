@@ -1,6 +1,6 @@
 export default function Home() {
   return (
-    <main className="bg-black text-white min-h-screen">
+    <main className="bg-black text-white min-h-screen pt-24">
       {/* HERO */}
       <section className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
         <p className="text-sm uppercase tracking-[0.3em] text-zinc-400 mb-6">
@@ -86,6 +86,47 @@ export default function Home() {
           </div>
         </div>
       </section>
+      {/* LEADERBOARD */}
+<section className="px-6 pb-32">
+  <div className="max-w-5xl mx-auto text-center mb-12">
+    <h2 className="text-4xl md:text-5xl font-bold mb-4">
+      Stay competitive.
+    </h2>
+    <p className="text-zinc-400 text-lg">
+      See where you stand. Push harder. Don’t get passed.
+    </p>
+  </div>
+
+  <div className="max-w-3xl mx-auto bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+    <div className="space-y-3">
+
+      {/* 1st */}
+      <div className="flex justify-between items-center hover:bg-zinc-800/50 transition rounded-lg px-3 py-2">
+        <span className="font-semibold">🥇 Alex M</span>
+        <span className="text-zinc-400">1,240 pts</span>
+      </div>
+
+      {/* YOU */}
+      <div className="flex justify-between items-center bg-gradient-to-r from-white/10 to-white/5 border border-white/10 rounded-xl px-3 py-2 shadow-sm">
+  <span className="font-semibold">🥈 You</span>
+  <span className="text-white">1,180 pts • 60 behind</span>
+</div>
+
+      {/* 3rd */}
+      <div className="flex justify-between items-center hover:bg-zinc-800/50 transition rounded-lg px-3 py-2">
+        <span className="font-semibold">🥉 Jordan K</span>
+        <span className="text-zinc-400">1,150 pts</span>
+      </div>
+
+      {/* others */}
+      <div className="flex justify-between items-center text-zinc-500 hover:bg-zinc-800/50 transition rounded-lg px-3 py-2">
+        <span>Chris D</span>
+        <span>1,020 pts</span>
+      </div>
+
+    </div>
+  </div>
+</section>
     </main>
   );
 }
