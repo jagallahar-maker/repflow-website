@@ -24,13 +24,13 @@ export default function Home() {
           </p>
 
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight max-w-5xl leading-tight">
-            Track harder. Compete smarter. Win more.
-          </h1>
+  Track harder. Compete smarter.{" "}
+  <span className="text-white">Win more.</span>
+</h1>
 
           <p className="mt-6 max-w-2xl text-zinc-400 text-lg md:text-xl leading-8">
-            Repflow gives coaches and athletes one place to manage training,
-            monitor performance, track progress, and stay locked in.
-          </p>
+  Everything you need to track performance, compete with purpose, and stay ahead.
+</p>
 
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <button className="bg-white text-black px-6 py-3 rounded-full font-semibold hover:opacity-90 transition">
