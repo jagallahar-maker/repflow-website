@@ -1,3 +1,4 @@
+import WaitlistForm from "@/components/WaitlistForm";
 export default function Home() {
   return (
     <>
@@ -261,7 +262,7 @@ export default function Home() {
         </section>
         {/* FINAL CTA */}
 <section className="px-6 pb-32">
-  <div className="max-w-4xl mx-auto border border-zinc-800 bg-zinc-900 rounded-[2rem] p-10 md:p-14 text-center">
+  <div className="max-w-4xl mx-auto border border-zinc-800 bg-zinc-900 rounded-[2rem] p-10 md:p-14 text-center shadow-[0_0_80px_rgba(255,255,255,0.05)]">
     <p className="text-sm uppercase tracking-[0.3em] text-zinc-400 mb-4">
       Start building with Repflow
     </p>
@@ -275,15 +276,8 @@ export default function Home() {
       a system they actually want to use.
     </p>
 
-    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-      <button className="bg-white text-black px-6 py-3 rounded-full font-semibold hover:opacity-90 transition">
-        Get Started
-      </button>
-      <button className="border border-zinc-700 px-6 py-3 rounded-full font-semibold hover:bg-zinc-800 transition">
-        Book a Demo
-      </button>
+    <WaitlistForm />
     </div>
-  </div>
 </section>
       </main>
     </>
