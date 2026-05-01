@@ -8,10 +8,10 @@ import {
 } from "firebase/auth";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { auth } from "@/lib/firebase-client";
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/become-coach";
@@ -175,9 +175,23 @@ function getReadableError(err: unknown): string {
         return "Sign-in window was closed.";
       case "auth/popup-blocked":
         return "Pop-up was blocked. Allow pop-ups for this site and try again.";
-      default:
+     default:
         return code;
     }
   }
   return "Something went wrong. Please try again.";
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-black text-white flex items-center justify-center p-6">
+          <div className="text-zinc-500 text-sm">Loading...</div>
+        </main>
+      }
+    >
+      <SignInForm />
+    </Suspense>
+  );
 }
