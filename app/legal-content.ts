@@ -66,7 +66,8 @@ export const termsOfService: LegalDoc = {
     {
       "heading": "7. Health and fitness information",
       "paragraphs": [
-        "Repflow gives general fitness and nutrition information and tracking tools. It is not medical advice and doesn't replace a doctor, dietitian, or other professional. Talk to a qualified professional before starting a new exercise or nutrition program, and stop and get help if you feel pain, dizziness, or shortness of breath. You use the Service at your own risk."
+        "Repflow gives general fitness and nutrition information and tracking tools. It is not medical advice and doesn't replace a doctor, dietitian, or other professional. Talk to a qualified professional before starting a new exercise or nutrition program, and stop and get help if you feel pain, dizziness, or shortness of breath. You use the Service at your own risk.",
+        "Calorie, macro and weight-change targets (Diet → Strategy) are estimates calculated from formulas and the data you log. They are meant for healthy adults and have built-in limits (a minimum daily calorie target and a maximum rate of weight loss), but they are not medical advice or a treatment plan. Talk to a doctor or registered dietitian before following them if you are under 18, pregnant or breastfeeding, have a medical condition (for example diabetes or kidney disease) or take medication affected by diet, or have a history of disordered eating. TODO(legal): review the nutrition-target disclaimer."
       ]
     },
     {
