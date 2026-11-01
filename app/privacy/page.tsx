@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
-          Effective date: May 3, 2026
+          Effective date: May 3, 2026 · Last updated: November 1, 2026
         </p>
 
         <div className="mt-10 space-y-6 text-zinc-300 leading-relaxed">
@@ -106,10 +106,21 @@ export default function PrivacyPage() {
 
           <SubHeading>Apple Health integration (iOS)</SubHeading>
           <p>
-            If you grant access, Repflow reads workouts, steps, heart rate,
-            and active energy from Apple Health, and writes your completed
-            Repflow workouts back to Apple Health. You can revoke this
-            access at any time in the iOS Health app under Sources or Apps.
+            If you grant access, Repflow reads your steps, walking and
+            running distance, heart rate, workouts, active energy, and
+            cycling distance from Apple Health, and writes your finished
+            strength and cardio workouts (with their duration, calories, and
+            distance) to Apple Health. Repflow does not read your body
+            weight from Apple Health.
+          </p>
+          <p>
+            Some of this is saved to your Repflow account: your daily steps
+            (for your dashboard and, if you join it, the leaderboard) and
+            the heart rate recorded during a cardio workout (stored with
+            that session). Apple Health data is never sold, never used for
+            advertising, and never shared with third parties for their own
+            purposes. You can revoke access at any time in the Health app
+            (your profile → Apps → Repflow).
           </p>
 
           <SubHeading>Location</SubHeading>
@@ -129,6 +140,33 @@ export default function PrivacyPage() {
             select an existing photo to upload as a progress photo. Repflow
             doesn&apos;t access your camera or photos outside of these
             features.
+          </p>
+
+          <SubHeading>Posts, comments, and your profile</SubHeading>
+          <p>
+            If you use Repflow&apos;s social features, the posts, photos,
+            videos, comments, and profile details you choose to share
+            (name, username, bio, profile photo, and banner) are stored in
+            your account and shown to other users according to your
+            visibility settings (public or friends only). Workouts you
+            attach to a post share the summary shown on the post. Progress
+            photos and videos stay private unless you choose to share them
+            with your coach.
+          </p>
+
+          <SubHeading>Reports, blocks, and moderation</SubHeading>
+          <p>
+            You can report posts, comments, and profiles, and block other
+            users. When you report something, we store the report (what was
+            reported, the reason, any details you add, your account, and
+            the time) so we can review it, and we email ourselves an alert.
+            Reports are not shown to the person you report. Blocks are
+            stored in your account so the blocked person&apos;s content can
+            be hidden from you and yours from them. When we act on a report
+            (for example removing content or suspending an account) we keep
+            a record of the action and a copy of the removed content, which
+            we may keep longer where the law requires it. Our Community
+            Guidelines explain what isn&apos;t allowed.
           </p>
 
           <SubHeading>Contacts and friend discovery</SubHeading>
