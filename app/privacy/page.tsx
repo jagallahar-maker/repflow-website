@@ -279,14 +279,24 @@ export default function PrivacyPage() {
               </strong>{" "}
               coaching is for users 18 and over, and starts only when you
               enter a coach&apos;s invite code in the app. While you&apos;re
-              connected, your coach can see your name, email, username and
-              age; your workouts and cardio sessions (exercises, sets, reps,
-              weights, duration and distance); and your body weight log and
-              goal weight. They see a progress photo or video only if you
-              turn on &quot;Share with coach&quot; for it, and they can write
-              you notes. Coaches can&apos;t see your food log, nutrition
-              targets, measurements, messages or social activity. You can
-              disconnect any time (Account → Coach), and a coach can end the
+              connected, your coach always sees your name, email, username
+              and age, and can write you notes. Everything else follows your
+              switches in &quot;What your coach can see&quot; (shown when you
+              connect, and any time under Account → Coach):{" "}
+              <strong className="text-white">Workouts</strong> (sessions,
+              sets, reps, weights, time, distance, program and PRs),{" "}
+              <strong className="text-white">Body</strong> (weigh-ins, goal
+              weight, measurements, body fat),{" "}
+              <strong className="text-white">Nutrition</strong> (your food log
+              and Strategy targets; off unless you turn it on),{" "}
+              <strong className="text-white">Progress photos</strong> and{" "}
+              <strong className="text-white">videos</strong> (only items you
+              mark &quot;Share with coach&quot;), check-ins, and AI summaries
+              (off unless you turn it on). Switching something off hides it
+              from your coach right away. Each time your coach opens your
+              data we record it, and the app shows when your coach last
+              viewed it. Coaches never see your messages or social activity.
+              You can disconnect any time, and a coach can end the
               connection; either way the coach loses access to your data
               right away. Disconnecting doesn&apos;t delete anything from
               your account.

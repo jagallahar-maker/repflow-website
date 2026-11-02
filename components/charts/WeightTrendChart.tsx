@@ -49,9 +49,9 @@ function subscribeStorage(onChange: () => void) {
   return () => window.removeEventListener("storage", onChange);
 }
 
-function readSavedRange(): RangeKey | null {
+function readSavedRange(key: string): RangeKey | null {
   try {
-    const v = localStorage.getItem(STORAGE_KEY);
+    const v = localStorage.getItem(key);
     return RANGES.some((r) => r.key === v) ? (v as RangeKey) : null;
   } catch {
     return null;
@@ -71,20 +71,34 @@ export default function WeightTrendChart({
   days,
   goal,
   today,
+  unit = "lb",
+  pointLabel = "weigh-ins",
+  storageKey = STORAGE_KEY,
 }: {
   days: TrendDay[];
   goal: number | null;
   today: number;
+  /** "lb" for weight, "in" for measurement sites. */
+  unit?: string;
+  /** Legend for the dots: "weigh-ins" or "entries". */
+  pointLabel?: string;
+  /** Remembered range (localStorage), one per chart kind. */
+  storageKey?: string;
 }) {
+  const one = pointLabel === "weigh-ins" ? "weigh-in" : "entry";
   // Last choice from this browser (null on the server and when unset).
-  const saved = useSyncExternalStore(subscribeStorage, readSavedRange, () => null);
+  const saved = useSyncExternalStore(
+    subscribeStorage,
+    () => readSavedRange(storageKey),
+    () => null,
+  );
   const [picked, setPicked] = useState<RangeKey | null>(null);
   const range: RangeKey = picked ?? saved ?? "30D";
 
   function choose(key: RangeKey) {
     setPicked(key);
     try {
-      localStorage.setItem(STORAGE_KEY, key);
+      localStorage.setItem(storageKey, key);
     } catch {
       // ignore
     }
@@ -192,7 +206,7 @@ export default function WeightTrendChart({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-zinc-500 mb-2">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-2 h-2 rounded-full" style={{ background: LIME, opacity: 0.45 }} />
-          {view?.weekly ? "weekly avg" : "weigh-ins"}
+          {view?.weekly ? "weekly avg" : pointLabel}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-4 h-0.5" style={{ background: LIME }} />
@@ -201,7 +215,7 @@ export default function WeightTrendChart({
         {goal != null && (
           <span>
             {view && !view.empty && !view.goalVisible
-              ? `Goal ${goal.toFixed(1)} lb (off chart)`
+              ? `Goal ${goal.toFixed(1)} ${unit} (off chart)`
               : "- - goal"}
           </span>
         )}
@@ -211,7 +225,7 @@ export default function WeightTrendChart({
       <div className="h-64 sm:h-72">
         {!view || view.empty ? (
           <div className="h-full flex items-center justify-center text-sm text-zinc-500">
-            No weigh-ins yet.
+            No {pointLabel} yet.
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
@@ -265,11 +279,11 @@ export default function WeightTrendChart({
                       <div className="font-semibold text-white">{formatDay(row.x)}</div>
                       <div className="text-zinc-300">
                         {row.weighIn == null
-                          ? "No weigh-in"
-                          : `${row.count > 1 ? `Avg of ${row.count}` : "Weigh-in"} ${row.weighIn.toFixed(1)} lb`}
+                          ? `No ${one}`
+                          : `${row.count > 1 ? `Avg of ${row.count}` : one[0].toUpperCase() + one.slice(1)} ${row.weighIn.toFixed(1)} ${unit}`}
                       </div>
                       <div style={{ color: LIME }}>
-                        {row.trend == null ? "No trend" : `Trend ${row.trend.toFixed(1)} lb`}
+                        {row.trend == null ? "No trend" : `Trend ${row.trend.toFixed(1)} ${unit}`}
                       </div>
                     </div>
                   );
@@ -313,10 +327,10 @@ export default function WeightTrendChart({
       {view && !view.empty && (
         <div className="mt-3 grid grid-cols-4 gap-2 text-sm">
           {[
-            ["Start", view.summary.start != null ? `${view.summary.start.toFixed(1)} lb` : "—"],
-            ["End", view.summary.end != null ? `${view.summary.end.toFixed(1)} lb` : "—"],
-            ["Change", view.summary.change != null ? `${signed(view.summary.change, 1)} lb` : "—"],
-            ["Per week", view.summary.perWeek != null ? `${signed(view.summary.perWeek, 2)} lb` : "—"],
+            ["Start", view.summary.start != null ? `${view.summary.start.toFixed(1)} ${unit}` : "—"],
+            ["End", view.summary.end != null ? `${view.summary.end.toFixed(1)} ${unit}` : "—"],
+            ["Change", view.summary.change != null ? `${signed(view.summary.change, 1)} ${unit}` : "—"],
+            ["Per week", view.summary.perWeek != null ? `${signed(view.summary.perWeek, 2)} ${unit}` : "—"],
           ].map(([label, value]) => (
             <div key={label} className="min-w-0">
               <div className="text-[11px] text-zinc-500">{label}</div>

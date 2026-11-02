@@ -241,25 +241,63 @@ function ClientRow({ row }: { row: ClientOverview }) {
         </div>
       )}
 
-      <div className="mt-4 grid gap-2 grid-cols-2 md:grid-cols-4 text-sm">
-        <Cell label="Last workout" value={relativeDay(row.lastWorkoutDay, row.today)} />
-        <Cell label="This week" value={weekLabel} sub={weekSub} />
-        <Cell
-          label="Trend weight"
-          value={row.trendWeight != null ? `${row.trendWeight.toFixed(1)} lb` : "—"}
-          sub={
-            rate != null
-              ? `${rate > 0 ? "+" : ""}${rate.toFixed(2)} lb/wk`
-              : "Not enough weigh-ins"
-          }
-        />
-        <Cell
-          label="Goal"
-          value={row.goalWeight != null ? `${row.goalWeight.toFixed(1)} lb` : "Not set"}
-          sub={row.goalText ?? undefined}
-        />
+      <div
+        className={`mt-4 grid gap-2 grid-cols-2 text-sm ${
+          row.sharing.nutrition ? "md:grid-cols-5" : "md:grid-cols-4"
+        }`}
+      >
+        {row.sharing.workouts ? (
+          <>
+            <Cell label="Last workout" value={relativeDay(row.lastWorkoutDay, row.today)} />
+            <Cell label="This week" value={weekLabel} sub={weekSub} />
+          </>
+        ) : (
+          <>
+            <NotSharedCell label="Last workout" />
+            <NotSharedCell label="This week" />
+          </>
+        )}
+        {row.sharing.body ? (
+          <>
+            <Cell
+              label="Trend weight"
+              value={row.trendWeight != null ? `${row.trendWeight.toFixed(1)} lb` : "—"}
+              sub={
+                rate != null
+                  ? `${rate > 0 ? "+" : ""}${rate.toFixed(2)} lb/wk`
+                  : "Not enough weigh-ins"
+              }
+            />
+            <Cell
+              label="Goal"
+              value={row.goalWeight != null ? `${row.goalWeight.toFixed(1)} lb` : "Not set"}
+              sub={row.goalText ?? undefined}
+            />
+          </>
+        ) : (
+          <>
+            <NotSharedCell label="Trend weight" />
+            <NotSharedCell label="Goal" />
+          </>
+        )}
+        {row.sharing.nutrition && (
+          <Cell
+            label="Food logging"
+            value={row.foodLoggedDays != null ? `${row.foodLoggedDays}/7 days` : "—"}
+            sub="completed days"
+          />
+        )}
       </div>
     </Link>
+  );
+}
+
+function NotSharedCell({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-zinc-800 bg-black px-3 py-2.5 min-w-0">
+      <div className="text-[11px] uppercase tracking-wide text-zinc-600">{label}</div>
+      <div className="mt-0.5 text-zinc-600 truncate">Not shared by client</div>
+    </div>
   );
 }
 

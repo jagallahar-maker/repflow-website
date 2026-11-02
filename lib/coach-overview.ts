@@ -1,9 +1,12 @@
 import {
   getActiveProgram,
+  getDailyIntake,
   getLatestSharedMediaTime,
   getSessions,
   getWeighIns,
+  loggedDaysLast7,
 } from "@/lib/coach-client-data.ts";
+import { getCoachSharing, type CoachSharing } from "@/lib/coach-sharing.ts";
 import {
   getBestDisplayName,
   getBestEmail,
@@ -23,7 +26,13 @@ import {
   type WeightPoint,
 } from "@/lib/trend.ts";
 
-export type FlagKey = "noWorkout" | "missedSessions" | "noWeighIn" | "trendAway" | "newMedia";
+export type FlagKey =
+  | "noWorkout"
+  | "missedSessions"
+  | "noWeighIn"
+  | "trendAway"
+  | "lowFoodLogging"
+  | "newMedia";
 
 export type ClientFlag = {
   key: FlagKey;
@@ -36,6 +45,10 @@ export type ClientOverview = {
   id: string;
   /** Today on this client's calendar (their own time zone when saved). */
   today: DayNum;
+  /** What the client shares; unshared data is never read. */
+  sharing: CoachSharing;
+  /** Completed days of the last 7 with food logged (nutrition shared only). */
+  foodLoggedDays: number | null;
   name: string;
   email: string;
   lastWorkoutDay: DayNum | null;
@@ -65,19 +78,29 @@ export function weighInPoints(logs: { logDate?: string; weight?: number }[]): We
   return out;
 }
 
-/** Everything the dashboard row needs, from ~6 small field-limited reads. */
+/**
+ * Everything the dashboard row needs, from a few small field-limited
+ * reads. Only categories the client shares are read at all.
+ */
 export async function getClientOverview(
   clientId: string,
   summary: ClientSummaryDoc & { coachLastViewedLocal?: string },
 ): Promise<ClientOverview> {
-  const [profile, sessions, logs, program, latestShared] = await Promise.all([
+  const [profile, sharing] = await Promise.all([
     getUserProfile(clientId),
-    getSessions(clientId, 60, "light"),
-    getWeighIns(clientId, 40),
-    getActiveProgram(clientId),
-    getLatestSharedMediaTime(clientId),
+    getCoachSharing(clientId),
   ]);
   const today = todayDay(profile?.timeZone);
+  const [sessions, logs, program, latestShared, intake] = await Promise.all([
+    sharing.workouts ? getSessions(clientId, 60, "light") : Promise.resolve([]),
+    sharing.body ? getWeighIns(clientId, 40) : Promise.resolve([]),
+    sharing.workouts ? getActiveProgram(clientId) : Promise.resolve(null),
+    sharing.photos || sharing.videos
+      ? getLatestSharedMediaTime(clientId, sharing)
+      : Promise.resolve(null),
+    sharing.nutrition ? getDailyIntake(clientId, today, 8) : Promise.resolve(null),
+  ]);
+  const foodLoggedDays = intake ? loggedDaysLast7(intake, today) : null;
 
   const last = lastWorkoutDay(sessions);
   const daysSinceWorkout = last == null ? null : today - last;
@@ -103,7 +126,8 @@ export async function getClientOverview(
   const trend = trendRate(points, today);
   const trendWeight = trendWeightAt(points, today);
   const lastWeighInDay = points.length ? Math.max(...points.map((p) => p.day)) : null;
-  const goalWeight = typeof profile?.goalWeight === "number" ? profile.goalWeight : null;
+  const goalWeight =
+    sharing.body && typeof profile?.goalWeight === "number" ? profile.goalWeight : null;
   const current = trendWeight ?? (points.length ? points[0].weightLb : null);
   const goalText =
     current != null
@@ -111,7 +135,7 @@ export async function getClientOverview(
       : null;
 
   const flags: ClientFlag[] = [];
-  if (daysSinceWorkout == null || daysSinceWorkout >= 5) {
+  if (sharing.workouts && (daysSinceWorkout == null || daysSinceWorkout >= 5)) {
     flags.push({
       key: "noWorkout",
       label: daysSinceWorkout == null ? "No workouts yet" : `No workout in ${daysSinceWorkout} days`,
@@ -125,7 +149,7 @@ export async function getClientOverview(
       level: "warn",
     });
   }
-  if (lastWeighInDay == null || today - lastWeighInDay >= 7) {
+  if (sharing.body && (lastWeighInDay == null || today - lastWeighInDay >= 7)) {
     flags.push({
       key: "noWeighIn",
       label: lastWeighInDay == null ? "No weigh-ins yet" : `No weigh-in in ${today - lastWeighInDay} days`,
@@ -142,6 +166,13 @@ export async function getClientOverview(
       });
     }
   }
+  if (foodLoggedDays != null && foodLoggedDays < 4) {
+    flags.push({
+      key: "lowFoodLogging",
+      label: `Food logged ${foodLoggedDays} of the last 7 days`,
+      level: "warn",
+    });
+  }
   const lastViewed =
     summary.coachLastViewedLocal ??
     (typeof summary.linkedAt === "string" ? summary.linkedAt : null);
@@ -154,6 +185,7 @@ export async function getClientOverview(
     noWorkout: 3,
     trendAway: 2,
     noWeighIn: 2,
+    lowFoodLogging: 2,
     newMedia: 1,
   };
   const score = flags.reduce((sum, f) => sum + weights[f.key], 0);
@@ -161,6 +193,8 @@ export async function getClientOverview(
   return {
     id: clientId,
     today,
+    sharing,
+    foodLoggedDays,
     name: getBestDisplayName(summary, profile),
     email: getBestEmail(summary, profile),
     lastWorkoutDay: last,

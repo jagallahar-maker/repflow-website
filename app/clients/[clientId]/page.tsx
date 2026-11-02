@@ -2,6 +2,7 @@ import CoachHeader from "@/components/CoachHeader";
 import CoachNotesSection from "@/components/CoachNotesSection";
 import CoachSharedMediaSection from "@/components/CoachSharedMediaSection";
 import EndCoachingButton from "@/components/EndCoachingButton";
+import MeasurementsPanel, { type MeasurementSite } from "@/components/MeasurementsPanel";
 import ActivityHeatmap from "@/components/charts/ActivityHeatmap";
 import ExerciseProgressionChart from "@/components/charts/ExerciseProgressionChart";
 import WeeklyCardioChart from "@/components/charts/WeeklyCardioChart";
@@ -9,11 +10,19 @@ import WeeklyVolumeChart from "@/components/charts/WeeklyVolumeChart";
 import WeeklyWorkoutCountChart from "@/components/charts/WeeklyWorkoutCountChart";
 import WeightTrendChart, { type TrendDay } from "@/components/charts/WeightTrendChart";
 import {
+  MEASUREMENT_SITES,
   getActiveProgram,
+  getActiveStrategy,
+  getDailyIntake,
+  getMeasurements,
   getSessions,
   getWeighIns,
+  loggedDaysLast7,
   markCoachViewed,
+  type DayIntake,
+  type StrategyDoc,
 } from "@/lib/coach-client-data.ts";
+import { getCoachSharing } from "@/lib/coach-sharing.ts";
 import {
   buildActivityHeatmap,
   buildE1rmSeries,
@@ -60,7 +69,10 @@ import {
   goalEstimate,
   todayDay,
   trendRate,
+  trendStatus,
   trendWeightAt,
+  type DayNum,
+  type TrendStatus,
 } from "@/lib/trend.ts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -80,20 +92,28 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
     notFound();
   }
 
-  const [summary, profile, logs, sessions, program, coachNotes] = await Promise.all([
+  const [summary, profile, sharing, coachNotes] = await Promise.all([
     getClientSummary(clientId, session.coachId),
     getUserProfile(clientId),
-    getWeighIns(clientId, 1500),
-    getSessions(clientId, 300, "full"),
-    getActiveProgram(clientId),
+    getCoachSharing(clientId),
     getCoachNotes(session.coachId, clientId),
   ]);
   if (!summary) notFound();
+  // The client's own calendar day (their saved time zone when present).
+  const today = todayDay(profile?.timeZone);
+
+  // Only what the client shares is read at all.
+  const [logs, sessions, program, measurements, strategy, intake] = await Promise.all([
+    sharing.body ? getWeighIns(clientId, 1500) : Promise.resolve([]),
+    sharing.workouts ? getSessions(clientId, 300, "full") : Promise.resolve([]),
+    sharing.workouts ? getActiveProgram(clientId) : Promise.resolve(null),
+    sharing.body ? getMeasurements(clientId) : Promise.resolve([]),
+    sharing.nutrition ? getActiveStrategy(clientId) : Promise.resolve(null),
+    sharing.nutrition ? getDailyIntake(clientId, today, 28) : Promise.resolve(null),
+  ]);
   // Drives the dashboard's "new shared media since your last visit".
   await markCoachViewed(session.coachId, clientId, profile?.timeZone);
 
-  // The client's own calendar day (their saved time zone when present).
-  const today = todayDay(profile?.timeZone);
   const displayName = getBestDisplayName(summary, profile);
   const email = getBestEmail(summary, profile);
 
@@ -101,7 +121,8 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
   const points = weighInPoints(logs);
   const trend = trendRate(points, today);
   const trendWeight = trendWeightAt(points, today);
-  const goalWeight = typeof profile?.goalWeight === "number" ? profile.goalWeight : null;
+  const goalWeight =
+    sharing.body && typeof profile?.goalWeight === "number" ? profile.goalWeight : null;
   const latestWeight = points.length ? points[0].weightLb : null;
   const currentWeight = trendWeight ?? latestWeight;
   const goalText =
@@ -142,6 +163,35 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
   }
 
   const rate = trend?.lbPerWeek ?? null;
+
+  // ── Measurements (body) ─────────────────────────────────────────────
+  const measurementSites: MeasurementSite[] = MEASUREMENT_SITES.map(({ key, name }) => {
+    const entries = measurements.filter((m) => m.bodyPart === key);
+    const pts = entries.map((m) => ({ day: m.day, weightLb: m.inches }));
+    const latest = entries.length ? entries[entries.length - 1] : null;
+    return {
+      key,
+      name,
+      latest: latest?.inches ?? null,
+      sinceStart: entries.length >= 2 ? latest!.inches - entries[0].inches : null,
+      entries: entries.length,
+      lastDay: latest ? formatDay(latest.day) : null,
+      days: dailyTrend(pts, today).map(
+        (d): TrendDay => [
+          d.day,
+          d.weighInLb == null ? null : Math.round(d.weighInLb * 100) / 100,
+          d.weighIns,
+          d.trend == null ? null : Math.round(d.trend * 100) / 100,
+        ],
+      ),
+    };
+  });
+
+  // ── Nutrition / Strategy ────────────────────────────────────────────
+  const strategyStatus: TrendStatus | null =
+    strategy && sharing.body && typeof strategy.goalRateLbPerWeek === "number"
+      ? trendStatus(rate, strategy.goalRateLbPerWeek)
+      : null;
   const showProgramWeek = weekdayProgram && adherence != null;
 
   return (
@@ -164,6 +214,7 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
           </div>
 
           <div className="mt-5 grid gap-2 sm:gap-3 grid-cols-2 lg:grid-cols-4">
+            {sharing.body ? (
             <Stat
               label="Trend weight"
               value={currentWeight != null ? `${currentWeight.toFixed(1)} lb` : "—"}
@@ -175,11 +226,20 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
                     : "Not enough weigh-ins for a rate"
               }
             />
+            ) : (
+              <NotSharedStat label="Trend weight" />
+            )}
+            {sharing.body ? (
             <Stat
               label="Goal weight"
               value={goalWeight != null ? `${goalWeight.toFixed(1)} lb` : "Not set"}
               sub={goalText ?? undefined}
             />
+            ) : (
+              <NotSharedStat label="Goal weight" />
+            )}
+            {sharing.workouts ? (
+            <>
             <Stat
               label="This week"
               value={
@@ -204,16 +264,49 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
               }
               warn={lastDay == null || today - lastDay >= 5}
             />
+            </>
+            ) : (
+              <>
+                <NotSharedStat label="This week" />
+                <NotSharedStat label="Last workout" />
+              </>
+            )}
           </div>
         </div>
 
         {/* ── Weight chart ───────────────────────────────────────────── */}
+        {sharing.body ? (
         <section className={`mt-6 ${CARD}`}>
           <SectionTitle title="Body weight" note="7-day trend, same math as the app" />
           <WeightTrendChart days={chartDays} goal={goalWeight} today={today} />
         </section>
+        ) : (
+          <NotSharedSection title="Body weight" what="weigh-ins and goal weight" />
+        )}
+
+        {/* ── Measurements (body) ────────────────────────────────────── */}
+        {sharing.body && (
+          <section className={`mt-6 ${CARD}`}>
+            <SectionTitle title="Measurements" note="inches · change since first entry" />
+            <MeasurementsPanel sites={measurementSites} today={today} />
+          </section>
+        )}
+
+        {/* ── Nutrition & Strategy ───────────────────────────────────── */}
+        {sharing.nutrition ? (
+          <NutritionSection
+            strategy={strategy}
+            intake={intake ?? new Map()}
+            today={today}
+            status={strategyStatus}
+            bodyShared={sharing.body}
+          />
+        ) : (
+          <NotSharedSection title="Nutrition & Strategy" what="food log and Strategy targets" />
+        )}
 
         {/* ── Program adherence ──────────────────────────────────────── */}
+        {sharing.workouts && (
         <section className={`mt-6 ${CARD}`}>
           <SectionTitle
             title="Program adherence"
@@ -228,16 +321,23 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
             <AdherenceTable adherence={adherence} weekday={weekdayProgram} />
           )}
         </section>
+        )}
 
         <div className="mt-6">
           <CoachNotesSection clientId={clientId} notes={coachNotes} />
         </div>
 
         <div className="mt-6">
-          <CoachSharedMediaSection clientId={clientId} trendByDay={trendByDay} />
+          <CoachSharedMediaSection
+            clientId={clientId}
+            trendByDay={trendByDay}
+            photosShared={sharing.photos}
+            videosShared={sharing.videos}
+          />
         </div>
 
         {/* ── Workout history ────────────────────────────────────────── */}
+        {sharing.workouts ? (
         <section className={`mt-6 ${CARD}`}>
           <SectionTitle
             title="Workout history"
@@ -253,7 +353,12 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
             </div>
           )}
         </section>
+        ) : (
+          <NotSharedSection title="Workouts" what="workouts, program, PRs and volume" />
+        )}
 
+        {sharing.workouts && (
+        <>
         {/* ── PRs + best lifts ───────────────────────────────────────── */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <section className={CARD}>
@@ -377,6 +482,8 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
             <WeeklyCardioChart data={buildWeeklyCardioSeries(chartSessions, 12)} />
           </section>
         </div>
+        </>
+        )}
 
         <section className={`mt-6 ${CARD}`}>
           <SectionTitle title="Profile" />
@@ -385,7 +492,7 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
             <div>Email: {email}</div>
             <div>Age: {profile?.age ?? "N/A"}</div>
             <div>Username: {profile?.username ? `@${profile.username}` : "N/A"}</div>
-            <div>Latest weigh-in: {formatWeight(latestWeight)}</div>
+            {sharing.body && <div>Latest weigh-in: {formatWeight(latestWeight)}</div>}
             <div>Connected: {formatShortDate(summary.linkedAt)}</div>
           </div>
         </section>
@@ -395,6 +502,158 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
 }
 
 // ── Pieces ──────────────────────────────────────────────────────────────
+
+function NotSharedSection({ title, what }: { title: string; what: string }) {
+  return (
+    <section className="mt-6 rounded-2xl border border-dashed border-zinc-800 bg-zinc-950 p-4 sm:p-5">
+      <h2 className="text-lg font-semibold text-zinc-400">{title}</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        Not shared by client. They can turn on {what} in the app under
+        Account → Coach → What your coach can see.
+      </p>
+    </section>
+  );
+}
+
+function NotSharedStat({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-zinc-800 bg-black px-3 py-3 min-w-0">
+      <div className="text-[11px] uppercase tracking-wide text-zinc-600">{label}</div>
+      <div className="mt-1 text-sm text-zinc-600">Not shared by client</div>
+    </div>
+  );
+}
+
+const STATUS_TEXT: Record<TrendStatus, string> = {
+  notEnoughData: "Not enough weigh-ins yet",
+  onTrack: "On track",
+  ahead: "Ahead of plan",
+  behind: "Behind plan",
+  wrongDirection: "Wrong direction",
+  drifting: "Drifting",
+};
+
+function NutritionSection({
+  strategy,
+  intake,
+  today,
+  status,
+  bodyShared,
+}: {
+  strategy: StrategyDoc | null;
+  intake: Map<DayNum, DayIntake>;
+  today: DayNum;
+  status: TrendStatus | null;
+  bodyShared: boolean;
+}) {
+  const target = strategy?.currentCalorieTarget ?? null;
+  const logged7 = loggedDaysLast7(intake, today);
+  const last7 = Array.from({ length: 7 }, (_, i) => intake.get(today - 7 + i)).filter(
+    (d): d is DayIntake => d != null && d.kcal > 0,
+  );
+  const avgKcal = last7.length ? last7.reduce((a, d) => a + d.kcal, 0) / last7.length : null;
+  const avgProtein = last7.length ? last7.reduce((a, d) => a + d.protein, 0) / last7.length : null;
+  const rate = strategy?.goalRateLbPerWeek;
+  const days = Array.from({ length: 14 }, (_, i) => today - i);
+  const maxKcal = Math.max(target ?? 0, ...days.map((d) => intake.get(d)?.kcal ?? 0), 1);
+  const statusWarn = status === "wrongDirection" || status === "behind" || status === "drifting";
+
+  return (
+    <section className={`mt-6 ${CARD}`}>
+      <SectionTitle title="Nutrition & Strategy" note="from the client's food log" />
+      <div className="grid gap-2 sm:gap-3 grid-cols-2 lg:grid-cols-4">
+        <Stat
+          label="Strategy"
+          value={strategy ? (strategy.name ?? "Active program") : "None"}
+          sub={
+            strategy
+              ? `${rate != null ? `goal ${rate > 0 ? "+" : ""}${rate.toFixed(2)} lb/wk` : ""}${
+                  strategy.currentTdeeEstimate ? ` · TDEE ${Math.round(strategy.currentTdeeEstimate)}` : ""
+                }`
+              : "No active Diet → Strategy program"
+          }
+        />
+        <Stat
+          label="Daily target"
+          value={target != null ? `${Math.round(target)} kcal` : "—"}
+          sub={
+            strategy
+              ? `P ${Math.round(strategy.currentProteinTarget ?? 0)} · C ${Math.round(strategy.currentCarbsTarget ?? 0)} · F ${Math.round(strategy.currentFatTarget ?? 0)} g`
+              : undefined
+          }
+        />
+        <Stat
+          label="Last 7 days"
+          value={avgKcal != null ? `${Math.round(avgKcal)} kcal` : "—"}
+          sub={`avg on ${logged7}/7 logged days${avgProtein != null ? ` · ${Math.round(avgProtein)} g protein` : ""}`}
+          warn={logged7 < 4}
+        />
+        <Stat
+          label="Status"
+          value={status ? STATUS_TEXT[status] : "—"}
+          sub={
+            !strategy
+              ? undefined
+              : bodyShared
+                ? "weight trend vs goal rate (same as the app)"
+                : "Needs body sharing"
+          }
+          warn={statusWarn}
+        />
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-[11px] uppercase tracking-wide text-zinc-500">
+              <th className="py-1.5 font-medium">Day</th>
+              <th className="py-1.5 font-medium text-right">kcal</th>
+              <th className="py-1.5 font-medium pl-3 w-1/2">vs target</th>
+              <th className="py-1.5 font-medium text-right">Protein</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-900">
+            {days.map((d) => {
+              const t = intake.get(d);
+              const kcal = t?.kcal ?? 0;
+              return (
+                <tr key={d} className={kcal > 0 ? "" : "text-zinc-600"}>
+                  <td className="py-1.5 pr-2 whitespace-nowrap">
+                    {d === today ? "Today" : formatDayShort(d)}
+                  </td>
+                  <td className="py-1.5 text-right tabular-nums">
+                    {kcal > 0 ? Math.round(kcal) : "—"}
+                  </td>
+                  <td className="py-1.5 pl-3">
+                    <div className="relative h-2 rounded-full bg-zinc-900 overflow-hidden">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full bg-[#9EFD06]"
+                        style={{ width: `${(kcal / maxKcal) * 100}%`, opacity: kcal > 0 ? 0.85 : 0 }}
+                      />
+                      {target != null && (
+                        <div
+                          className="absolute inset-y-0 w-0.5 bg-white/60"
+                          style={{ left: `${(target / maxKcal) * 100}%` }}
+                        />
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-1.5 text-right tabular-nums text-zinc-400">
+                    {kcal > 0 ? `${Math.round(t!.protein)} g` : ""}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <p className="mt-2 text-xs text-zinc-500">
+          White line = daily calorie target. Today may be incomplete;
+          supplements aren&apos;t counted as food.
+        </p>
+      </div>
+    </section>
+  );
+}
 
 function SectionTitle({ title, note }: { title: string; note?: string }) {
   return (

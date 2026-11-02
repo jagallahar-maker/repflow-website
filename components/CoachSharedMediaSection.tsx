@@ -12,11 +12,46 @@ type Props = {
   clientId: string;
   /** "YYYY-MM-DD" → 7-day trend weight, for labeling compared photos. */
   trendByDay?: Record<string, number>;
+  /** The client's photo / video sharing switches (the function enforces them too). */
+  photosShared?: boolean;
+  videosShared?: boolean;
 };
 
 type FilterValue = "all" | "photo" | "video";
 
-export default function CoachSharedMediaSection({ clientId, trendByDay = {} }: Props) {
+export default function CoachSharedMediaSection({
+  clientId,
+  trendByDay = {},
+  photosShared = true,
+  videosShared = true,
+}: Props) {
+  if (!photosShared && !videosShared) {
+    return (
+      <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-950 p-5">
+        <h2 className="text-xl font-semibold">Shared Media</h2>
+        <p className="mt-2 text-sm text-zinc-500">
+          Not shared by client. They&apos;ve turned off progress photos and
+          videos in &ldquo;What your coach can see&rdquo;.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <SharedMediaInner
+      clientId={clientId}
+      trendByDay={trendByDay}
+      photosShared={photosShared}
+      videosShared={videosShared}
+    />
+  );
+}
+
+function SharedMediaInner({
+  clientId,
+  trendByDay,
+  photosShared,
+  videosShared,
+}: Required<Props>) {
   const [comparing, setComparing] = useState(false);
   const [items, setItems] = useState<SharedMediaItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -79,6 +114,12 @@ export default function CoachSharedMediaSection({ clientId, trendByDay = {} }: P
         </span>
       </div>
 
+      {(!photosShared || !videosShared) && (
+        <p className="mb-3 text-xs text-zinc-500">
+          {photosShared ? "Videos" : "Photos"} not shared by client.
+        </p>
+      )}
+
       {/* Filter pills */}
       <div className="mb-4 flex gap-2">
         <FilterPill
@@ -86,16 +127,20 @@ export default function CoachSharedMediaSection({ clientId, trendByDay = {} }: P
           active={filter === "all"}
           onClick={() => setFilter("all")}
         />
-        <FilterPill
-          label="Photos"
-          active={filter === "photo"}
-          onClick={() => setFilter("photo")}
-        />
-        <FilterPill
-          label="Videos"
-          active={filter === "video"}
-          onClick={() => setFilter("video")}
-        />
+        {photosShared && videosShared && (
+          <>
+            <FilterPill
+              label="Photos"
+              active={filter === "photo"}
+              onClick={() => setFilter("photo")}
+            />
+            <FilterPill
+              label="Videos"
+              active={filter === "video"}
+              onClick={() => setFilter("video")}
+            />
+          </>
+        )}
         {photoCount >= 2 && (
           <span className="ml-auto">
             <FilterPill
