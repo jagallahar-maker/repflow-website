@@ -15,6 +15,8 @@ export type ClientSummaryDoc = {
   linkedAt?: string | { toDate?: () => Date } | null;
   unlinkedAt?: string | { toDate?: () => Date } | null;
   endedAt?: string | { toDate?: () => Date } | null;
+  /** Wall-clock (client timezone) time of the coach's last visit. */
+  coachLastViewedLocal?: string;
   createdAt?: string | { toDate?: () => Date } | null;
   updatedAt?: string | { toDate?: () => Date } | null;
 };

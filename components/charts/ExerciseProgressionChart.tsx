@@ -20,21 +20,33 @@ type Props = {
    * picks a different exercise from the dropdown.
    */
   seriesByExerciseId: Record<string, E1rmPoint[]>;
+  /** Client's today as YYYY-MM-DD (server-computed); the range counts back from it. */
+  todayIso?: string;
 };
 
 export default function ExerciseProgressionChart({
   exercises,
   seriesByExerciseId,
+  todayIso,
 }: Props) {
   const [selectedId, setSelectedId] = useState<string>(
     exercises[0]?.exerciseId ?? "",
   );
+  // Series arrive with up to a year of sessions; the toggle trims to 90 days.
+  const [rangeDays, setRangeDays] = useState<90 | 365>(90);
 
   const selected = useMemo(
     () => exercises.find((e) => e.exerciseId === selectedId),
     [exercises, selectedId],
   );
-  const series = seriesByExerciseId[selectedId] ?? [];
+  const all = seriesByExerciseId[selectedId] ?? [];
+  const anchor = todayIso ?? all[all.length - 1]?.date ?? "";
+  const cutoff = anchor
+    ? new Date(Date.parse(`${anchor}T00:00:00Z`) - rangeDays * 86400000)
+        .toISOString()
+        .slice(0, 10)
+    : "";
+  const series = all.filter((p) => p.date >= cutoff);
 
   if (exercises.length === 0) {
     return (
@@ -76,6 +88,22 @@ export default function ExerciseProgressionChart({
             </option>
           ))}
         </select>
+
+        <div className="flex gap-1">
+          {([90, 365] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => setRangeDays(d)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                rangeDays === d
+                  ? "border-[#9EFD06] text-[#9EFD06] bg-[#9EFD06]/10"
+                  : "border-zinc-800 text-zinc-400 hover:text-white"
+              }`}
+            >
+              {d === 90 ? "90D" : "1Y"}
+            </button>
+          ))}
+        </div>
 
         {selected && series.length > 0 && (
           <div className="flex items-center gap-4 text-xs text-zinc-400 ml-auto flex-wrap">

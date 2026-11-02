@@ -6,14 +6,18 @@ import {
   getSharedClientMedia,
   type SharedMediaItem,
 } from "@/lib/coach-media-client";
+import PhotoCompare from "@/components/PhotoCompare";
 
 type Props = {
   clientId: string;
+  /** "YYYY-MM-DD" → 7-day trend weight, for labeling compared photos. */
+  trendByDay?: Record<string, number>;
 };
 
 type FilterValue = "all" | "photo" | "video";
 
-export default function CoachSharedMediaSection({ clientId }: Props) {
+export default function CoachSharedMediaSection({ clientId, trendByDay = {} }: Props) {
+  const [comparing, setComparing] = useState(false);
   const [items, setItems] = useState<SharedMediaItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -92,7 +96,25 @@ export default function CoachSharedMediaSection({ clientId }: Props) {
           active={filter === "video"}
           onClick={() => setFilter("video")}
         />
+        {photoCount >= 2 && (
+          <span className="ml-auto">
+            <FilterPill
+              label={comparing ? "Close compare" : "Compare photos"}
+              active={comparing}
+              onClick={() => setComparing((c) => !c)}
+            />
+          </span>
+        )}
       </div>
+
+      {comparing && photoCount >= 2 && (
+        <div className="mb-4">
+          <PhotoCompare
+            photos={items.filter((i) => i.mediaType === "photo")}
+            trendByDay={trendByDay}
+          />
+        </div>
+      )}
 
       {loading && items.length === 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
