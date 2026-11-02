@@ -73,7 +73,8 @@ export const termsOfService: LegalDoc = {
     {
       "heading": "8. Coaches",
       "paragraphs": [
-        "Coaches on Repflow are independent and are not employed by Repflow. Repflow isn't responsible for a coach's advice or conduct. You choose what you share with a coach and can stop sharing at any time."
+        "Coaches on Repflow are independent and are not employed by Repflow. Repflow isn't responsible for a coach's advice or conduct.",
+        "You must be 18 or older to connect with a coach. While you're connected, your coach can see your name, email, username and age, your workouts and cardio sessions, and your body weight log and goal weight; they see progress photos and videos only if you choose to share them. You can disconnect at any time, and a coach can end the connection; either way the coach loses access right away. New coach accounts are reviewed by Repflow before they can connect with athletes."
       ]
     },
     {

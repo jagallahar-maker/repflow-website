@@ -17,6 +17,7 @@ export async function getCoachForUser(uid: string): Promise<{
   coachId: string;
   displayName: string;
   inviteCode: string | null;
+  isActive: boolean;
 } | null> {
   const snap = await adminDb
     .collection("coaches")
@@ -32,6 +33,7 @@ export async function getCoachForUser(uid: string): Promise<{
     coachId: doc.id,
     displayName: (data.displayName as string) ?? "",
     inviteCode: (data.inviteCode as string) ?? null,
+    isActive: data.isActive === true,
   };
 }
 
@@ -41,6 +43,8 @@ export async function getCoachForUser(uid: string): Promise<{
  * Behavior:
  *   - Not signed in        → redirect to /sign-in
  *   - Signed in, not coach → redirect to /become-coach
+ *   - Coach not active     → redirect to /become-coach (pending approval
+ *                            or deactivated; that page explains)
  *   - Signed in, is coach  → returns { user, coachId, ... }
  *
  * Use at the top of any server component that needs coach context.
@@ -49,7 +53,7 @@ export async function requireCoach(): Promise<CoachSession> {
   const user = await requireSessionUser();
   const coach = await getCoachForUser(user.uid);
 
-  if (!coach) {
+  if (!coach || !coach.isActive) {
     redirect("/become-coach");
   }
 
@@ -62,24 +66,36 @@ export async function requireCoach(): Promise<CoachSession> {
 }
 
 /**
- * Verify that a given clientId is actually a client of the given coach.
- * Returns true if the client summary doc exists under
- * coaches/{coachId}/clients/{clientId}.
+ * True only while clientId is an ACTIVE client of coachId: the roster
+ * entry coaches/{coachId}/clients/{clientId} has status "active" AND the
+ * athlete's own users/{clientId} doc still names this coach as active.
+ * The user doc is what disconnecting changes, so a coach loses access the
+ * moment the athlete disconnects, is removed, or moves to another coach.
+ * Mirrors isActiveClient() in functions/src/index.ts.
  *
- * Use this to gate /clients/[clientId] so coaches can't view other
- * coaches' clients by URL.
+ * Gate every per-client read with this: the Admin SDK bypasses Firestore
+ * rules, so this check is the only thing protecting client data.
  */
 export async function verifyClientBelongsToCoach(
   coachId: string,
   clientId: string,
 ): Promise<boolean> {
-  const doc = await adminDb
-    .collection("coaches")
-    .doc(coachId)
-    .collection("clients")
-    .doc(clientId)
-    .get();
-  return doc.exists;
+  const [clientDoc, userSnaps] = await Promise.all([
+    adminDb
+      .collection("coaches")
+      .doc(coachId)
+      .collection("clients")
+      .doc(clientId)
+      .get(),
+    adminDb.getAll(adminDb.collection("users").doc(clientId), {
+      fieldMask: ["coachId", "coachStatus"],
+    }),
+  ]);
+  if (!clientDoc.exists || clientDoc.data()?.status !== "active") {
+    return false;
+  }
+  const user = userSnaps[0]?.data() ?? {};
+  return user.coachId === coachId && user.coachStatus === "active";
 }
 
 /**
@@ -90,7 +106,7 @@ export async function getCoachSessionOrNull(): Promise<CoachSession | null> {
   const user = await getSessionUser();
   if (!user) return null;
   const coach = await getCoachForUser(user.uid);
-  if (!coach) return null;
+  if (!coach || !coach.isActive) return null;
   return {
     user,
     coachId: coach.coachId,

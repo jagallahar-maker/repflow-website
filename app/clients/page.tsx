@@ -1,29 +1,60 @@
 import CoachHeader from "@/components/CoachHeader";
+import InviteCodeCard from "@/components/InviteCodeCard";
 import {
   formatRelativeDate,
+  formatShortDate,
   formatWeight,
   formatWeightChange,
+  getBestDisplayName,
+  getBestEmail,
   getClientCardData,
   getCoachClients,
   getStatusColor,
   type ClientCardData,
 } from "@/lib/coach-data";
-import { requireCoach } from "@/lib/coach-session";
+import {
+  requireCoach,
+  verifyClientBelongsToCoach,
+} from "@/lib/coach-session";
 import Link from "next/link";
 
-async function getAllClientCards(coachId: string): Promise<ClientCardData[]> {
+type PastClient = {
+  id: string;
+  displayName: string;
+  endedAt: string | { toDate?: () => Date } | null;
+};
+
+/**
+ * Active clients get full cards; everyone else on the roster (they
+ * disconnected, the coach ended it, or they moved to another coach) is
+ * listed by name only. Their data is never read.
+ */
+async function getRoster(
+  coachId: string,
+): Promise<{ cards: ClientCardData[]; past: PastClient[] }> {
   const clients = await getCoachClients(coachId);
+  const access = await Promise.all(
+    clients.map((c) => verifyClientBelongsToCoach(coachId, c.id)),
+  );
+  const active = clients.filter((_, i) => access[i]);
+  const past = clients
+    .filter((_, i) => !access[i])
+    .map((c) => ({
+      id: c.id,
+      displayName: c.displayName || "Unnamed Client",
+      endedAt: c.unlinkedAt ?? c.endedAt ?? c.updatedAt ?? null,
+    }));
 
   const cards = await Promise.all(
-    clients.map((client) => getClientCardData(client.id, client)),
+    active.map((client) => getClientCardData(client.id, client)),
   );
 
-  return cards;
+  return { cards, past };
 }
 
 export default async function ClientsPage() {
   const session = await requireCoach();
-  const cards = await getAllClientCards(session.coachId);
+  const { cards, past } = await getRoster(session.coachId);
 
   const totalClients = cards.length;
   const activeThisWeek = cards.filter((c) => c.workoutsLast7Days > 0).length;
@@ -68,6 +99,10 @@ export default async function ClientsPage() {
           </div>
         </div>
 
+        <div className="mb-8">
+          <InviteCodeCard inviteCode={session.inviteCode} />
+        </div>
+
         {/* Invite code reminder */}
         {session.inviteCode && cards.length === 0 && (
           <div className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
@@ -93,7 +128,7 @@ export default async function ClientsPage() {
             </div>
           ) : (
             cards.map((card) => {
-              const { id, summary } = card;
+              const { id, summary, profile } = card;
               const statusClasses = getStatusColor(summary.status);
               const isStale =
                 !card.lastWorkoutDate || card.workoutsLast7Days === 0;
@@ -108,10 +143,10 @@ export default async function ClientsPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <div className="text-lg font-semibold truncate">
-                        {summary.displayName || "Unnamed Client"}
+                        {getBestDisplayName(summary, profile)}
                       </div>
                       <div className="text-sm text-zinc-400 mt-1 truncate">
-                        {summary.email || "No email"}
+                        {getBestEmail(summary, profile)}
                       </div>
                     </div>
 
@@ -172,7 +207,7 @@ export default async function ClientsPage() {
                         {formatRelativeDate(card.lastWorkoutDate)}
                       </div>
                       <div className="mt-1 text-xs text-zinc-500">
-                        Goal: {formatWeight(summary.goalWeight)}
+                        Goal: {formatWeight(profile?.goalWeight)}
                       </div>
                     </div>
                   </div>
@@ -181,6 +216,31 @@ export default async function ClientsPage() {
             })
           )}
         </div>
+
+        {/* Past clients: name only, no link, no data */}
+        {past.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-sm uppercase tracking-wider text-zinc-500 mb-3">
+              Past clients
+            </h2>
+            <div className="rounded-2xl border border-zinc-900 bg-zinc-950 divide-y divide-zinc-900">
+              {past.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between px-5 py-3 text-sm"
+                >
+                  <span className="text-zinc-400 truncate">{p.displayName}</span>
+                  <span className="text-zinc-600 shrink-0 ml-4">
+                    Ended {formatShortDate(p.endedAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-zinc-600">
+              You no longer have access to past clients&apos; data.
+            </p>
+          </div>
+        )}
       </div>
     </main>
   );

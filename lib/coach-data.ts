@@ -1,9 +1,5 @@
 import { adminDb } from "@/lib/firebase-admin";
 
-// ---------- Constants ----------
-
-export const HARDCODED_COACH_ID = "coachtest2";
-
 // ---------- Types ----------
 
 export type ClientSummaryDoc = {
@@ -17,11 +13,17 @@ export type ClientSummaryDoc = {
   workoutsThisWeek?: number;
   lastWorkoutAt?: string | { toDate?: () => Date } | null;
   linkedAt?: string | { toDate?: () => Date } | null;
+  unlinkedAt?: string | { toDate?: () => Date } | null;
+  endedAt?: string | { toDate?: () => Date } | null;
   createdAt?: string | { toDate?: () => Date } | null;
   updatedAt?: string | { toDate?: () => Date } | null;
 };
 
+/** The live fields the portal reads from users/{uid} (see PROFILE_FIELDS). */
 export type UserProfileDoc = {
+  /** The app stores the athlete's name as `name`. */
+  name?: string;
+  username?: string;
   displayName?: string;
   email?: string;
   currentWeight?: number;
@@ -82,6 +84,7 @@ export type ActivitySessionDoc = {
 export type ClientCardData = {
   id: string;
   summary: ClientSummaryDoc;
+  profile: UserProfileDoc | null;
   latestWeight: number | null;
   weightChange: number | null;
   lastWorkoutDate: string | null;
@@ -93,7 +96,7 @@ export type ClientCardData = {
 // ---------- Coach-scoped fetchers ----------
 
 export async function getCoachClients(
-  coachId: string = HARDCODED_COACH_ID,
+  coachId: string,
 ): Promise<Array<{ id: string } & ClientSummaryDoc>> {
   const snapshot = await adminDb
     .collection("coaches")
@@ -109,7 +112,7 @@ export async function getCoachClients(
 
 export async function getClientSummary(
   clientId: string,
-  coachId: string = HARDCODED_COACH_ID,
+  coachId: string,
 ): Promise<ClientSummaryDoc | null> {
   const doc = await adminDb
     .collection("coaches")
@@ -124,11 +127,34 @@ export async function getClientSummary(
 
 // ---------- User-scoped fetchers ----------
 
+/**
+ * Only these fields are read from users/{uid}: the rest of the profile
+ * (phone hash, settings, safety flags…) never reaches the portal.
+ * Read live, so name / email / goal weight are never the stale copies
+ * made on the roster doc at link time.
+ */
+const PROFILE_FIELDS = [
+  "name",
+  "username",
+  "displayName",
+  "firstName",
+  "lastName",
+  "email",
+  "age",
+  "currentWeight",
+  "goalWeight",
+  "coachId",
+  "coachStatus",
+  "coachDisplayName",
+];
+
 export async function getUserProfile(
   clientId: string,
 ): Promise<UserProfileDoc | null> {
-  const doc = await adminDb.collection("users").doc(clientId).get();
-  if (!doc.exists) return null;
+  const [doc] = await adminDb.getAll(adminDb.collection("users").doc(clientId), {
+    fieldMask: PROFILE_FIELDS,
+  });
+  if (!doc?.exists) return null;
   return doc.data() as UserProfileDoc;
 }
 
@@ -168,15 +194,18 @@ export async function getClientCardData(
   clientId: string,
   summary: ClientSummaryDoc,
 ): Promise<ClientCardData> {
-  const [bodyweightLogs, activitySessions] = await Promise.all([
+  const [bodyweightLogs, activitySessions, profile] = await Promise.all([
     getRecentBodyweightLogs(clientId, 10),
     getRecentActivitySessions(clientId, 25),
+    getUserProfile(clientId),
   ]);
 
   return {
     id: clientId,
     summary,
-    latestWeight: getLatestWeight(bodyweightLogs) ?? summary.currentWeight ?? null,
+    profile,
+    latestWeight:
+      getLatestWeight(bodyweightLogs) ?? profile?.currentWeight ?? null,
     weightChange: getWeightChangeFromOldest(bodyweightLogs),
     lastWorkoutDate: getLastWorkoutDate(activitySessions),
     workoutsLast7Days: getSevenDayWorkoutCount(activitySessions),
@@ -197,9 +226,10 @@ export function getBestDisplayName(
     .trim();
 
   return (
-    summary?.displayName ||
+    profile?.name?.trim() ||
     profile?.displayName ||
     fullName ||
+    summary?.displayName ||
     "Unnamed Client"
   );
 }
@@ -208,7 +238,7 @@ export function getBestEmail(
   summary: ClientSummaryDoc | null,
   profile: UserProfileDoc | null,
 ) {
-  return summary?.email || profile?.email || "No email";
+  return profile?.email || summary?.email || "No email";
 }
 
 // ---------- Date helpers ----------

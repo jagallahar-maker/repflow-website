@@ -1,6 +1,7 @@
 import CoachHeader from "@/components/CoachHeader";
 import CoachNotesSection from "@/components/CoachNotesSection";
 import CoachSharedMediaSection from "@/components/CoachSharedMediaSection";
+import EndCoachingButton from "@/components/EndCoachingButton";
 import ActivityHeatmap from "@/components/charts/ActivityHeatmap";
 import BodyweightChart from "@/components/charts/BodyweightChart";
 import ExerciseProgressionChart from "@/components/charts/ExerciseProgressionChart";
@@ -102,12 +103,11 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
   const recentSessions = allRecentSessions.slice(0, 10);
 
   const latestWeight =
-    getLatestWeight(bodyweightLogs) ??
-    userProfile?.currentWeight ??
-    clientSummary?.currentWeight;
+    getLatestWeight(bodyweightLogs) ?? userProfile?.currentWeight ?? null;
 
-  const goalWeightForChart =
-    userProfile?.goalWeight ?? clientSummary?.goalWeight ?? null;
+  // Live goal weight from the athlete's profile (the single source in the
+  // app); the roster doc's copy from link time is never used.
+  const goalWeightForChart = userProfile?.goalWeight ?? null;
 
   const weightChangeAcrossLogs = getWeightChangeFromOldest(bodyweightLogs);
   const workoutsLast7Days = getSevenDayWorkoutCount(allRecentSessions);
@@ -145,8 +145,13 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
         </Link>
 
         <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-          <h1 className="text-3xl font-bold">{displayName}</h1>
-          <p className="text-zinc-400 mt-2">{email}</p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold">{displayName}</h1>
+              <p className="text-zinc-400 mt-2">{email}</p>
+            </div>
+            <EndCoachingButton clientId={clientId} clientName={displayName} />
+          </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
             <div className="rounded-2xl border border-zinc-800 bg-black p-5">
@@ -285,47 +290,19 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-2xl border border-zinc-800 bg-black p-5">
-              <h2 className="text-xl font-semibold mb-4">Coach Summary</h2>
-              <div className="grid gap-3 text-sm text-zinc-300">
-                <div>Status: {clientSummary.status || "N/A"}</div>
-                <div>
-                  Current Weight: {formatWeight(clientSummary.currentWeight)}
-                </div>
-                <div>Goal Weight: {formatWeight(clientSummary.goalWeight)}</div>
-                <div>
-                  Workouts This Week: {clientSummary.workoutsThisWeek ?? 0}
-                </div>
-                <div>Coach ID: {clientSummary.coachId || "N/A"}</div>
-                <div>Client ID: {clientId}</div>
+          <div className="mt-6 rounded-2xl border border-zinc-800 bg-black p-5">
+            <h2 className="text-xl font-semibold mb-4">Profile</h2>
+            <div className="grid gap-3 text-sm text-zinc-300 sm:grid-cols-2">
+              <div>Name: {displayName}</div>
+              <div>Email: {email}</div>
+              <div>Age: {userProfile?.age ?? "N/A"}</div>
+              <div>
+                Username:{" "}
+                {userProfile?.username ? `@${userProfile.username}` : "N/A"}
               </div>
-            </div>
-
-            <div className="rounded-2xl border border-zinc-800 bg-black p-5">
-              <h2 className="text-xl font-semibold mb-4">User Profile</h2>
-              {userProfile ? (
-                <div className="grid gap-3 text-sm text-zinc-300">
-                  <div>Display Name: {userProfile.displayName || "N/A"}</div>
-                  <div>First Name: {userProfile.firstName || "N/A"}</div>
-                  <div>Last Name: {userProfile.lastName || "N/A"}</div>
-                  <div>Email: {userProfile.email || "N/A"}</div>
-                  <div>
-                    Current Weight: {formatWeight(userProfile.currentWeight)}
-                  </div>
-                  <div>Goal Weight: {formatWeight(userProfile.goalWeight)}</div>
-                  <div>Age: {userProfile.age ?? "N/A"}</div>
-                  <div>Coach ID: {userProfile.coachId || "N/A"}</div>
-                  <div>Coach Status: {userProfile.coachStatus || "N/A"}</div>
-                  <div>
-                    Coach Display Name: {userProfile.coachDisplayName || "N/A"}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-zinc-400">
-                  No matching user document found in users/{clientId}.
-                </div>
-              )}
+              <div>Current Weight: {formatWeight(latestWeight)}</div>
+              <div>Goal Weight: {formatWeight(goalWeightForChart)}</div>
+              <div>Connected: {formatShortDate(clientSummary.linkedAt)}</div>
             </div>
           </div>
 

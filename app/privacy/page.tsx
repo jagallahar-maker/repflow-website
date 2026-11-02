@@ -271,10 +271,25 @@ export default function PrivacyPage() {
                 With other Repflow users you choose:
               </strong>{" "}
               friends on your leaderboard see your name, photo, username,
-              and weekly workout statistics. Coaches you&apos;ve explicitly
-              linked to via an invite code can see workouts, body weight,
-              progress photos, and progress videos you&apos;ve explicitly
-              shared with them.
+              and weekly workout statistics.
+            </li>
+            <li>
+              <strong className="text-white">
+                With a coach you connect to:
+              </strong>{" "}
+              coaching is for users 18 and over, and starts only when you
+              enter a coach&apos;s invite code in the app. While you&apos;re
+              connected, your coach can see your name, email, username and
+              age; your workouts and cardio sessions (exercises, sets, reps,
+              weights, duration and distance); and your body weight log and
+              goal weight. They see a progress photo or video only if you
+              turn on &quot;Share with coach&quot; for it, and they can write
+              you notes. Coaches can&apos;t see your food log, nutrition
+              targets, measurements, messages or social activity. You can
+              disconnect any time (Account → Coach), and a coach can end the
+              connection; either way the coach loses access to your data
+              right away. Disconnecting doesn&apos;t delete anything from
+              your account.
             </li>
             <li>
               <strong className="text-white">With service providers:</strong>{" "}
