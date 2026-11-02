@@ -10,7 +10,6 @@ import {
   requireCoach,
   verifyClientBelongsToCoach,
 } from "@/lib/coach-session";
-import { todayDay } from "@/lib/trend.ts";
 import Link from "next/link";
 
 type PastClient = {
@@ -31,7 +30,6 @@ async function getRoster(coachId: string) {
   const access = await Promise.all(
     clients.map((c) => verifyClientBelongsToCoach(coachId, c.id)),
   );
-  const today = todayDay();
   const active = clients.filter((_, i) => access[i]);
   const past: PastClient[] = clients
     .filter((_, i) => !access[i])
@@ -41,7 +39,7 @@ async function getRoster(coachId: string) {
       endedAt: c.unlinkedAt ?? c.endedAt ?? c.updatedAt ?? null,
     }));
   const rows = await Promise.all(
-    active.map((c) => getClientOverview(c.id, c, today)),
+    active.map((c) => getClientOverview(c.id, c)),
   );
   // Needs attention first (most urgent on top), then by most recent workout.
   rows.sort(
@@ -50,7 +48,7 @@ async function getRoster(coachId: string) {
       b.score - a.score ||
       (b.lastWorkoutDay ?? -1) - (a.lastWorkoutDay ?? -1),
   );
-  return { rows, past, today };
+  return { rows, past };
 }
 
 export default async function ClientsPage({
@@ -62,7 +60,7 @@ export default async function ClientsPage({
   const { filter: rawFilter } = await searchParams;
   const filter: Filter =
     rawFilter === "attention" || rawFilter === "ontrack" ? rawFilter : "all";
-  const { rows, past, today } = await getRoster(session.coachId);
+  const { rows, past } = await getRoster(session.coachId);
 
   const attentionCount = rows.filter((r) => r.needsAttention).length;
   const visible = rows.filter((r) =>
@@ -139,7 +137,7 @@ export default async function ClientsPage({
                 : "No clients match this filter."}
             </div>
           ) : (
-            visible.map((r) => <ClientRow key={r.id} row={r} today={today} />)
+            visible.map((r) => <ClientRow key={r.id} row={r} />)
           )}
         </div>
 
@@ -193,7 +191,7 @@ function Stat({
   );
 }
 
-function ClientRow({ row, today }: { row: ClientOverview; today: number }) {
+function ClientRow({ row }: { row: ClientOverview }) {
   const t = row.target;
   const weekLabel =
     t.kind === "program"
@@ -244,7 +242,7 @@ function ClientRow({ row, today }: { row: ClientOverview; today: number }) {
       )}
 
       <div className="mt-4 grid gap-2 grid-cols-2 md:grid-cols-4 text-sm">
-        <Cell label="Last workout" value={relativeDay(row.lastWorkoutDay, today)} />
+        <Cell label="Last workout" value={relativeDay(row.lastWorkoutDay, row.today)} />
         <Cell label="This week" value={weekLabel} sub={weekSub} />
         <Cell
           label="Trend weight"

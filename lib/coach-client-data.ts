@@ -1,5 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase-admin";
+import { timeZoneCandidates } from "@/lib/trend.ts";
 import type { ProgramDoc } from "@/lib/coach-programs.ts";
 import type { SessionDoc } from "@/lib/coach-insights.ts";
 
@@ -107,35 +108,41 @@ export async function getLatestSharedMediaTime(clientId: string): Promise<string
 }
 
 /**
- * Now as a wall-clock ISO string in the client's timezone
- * (COACH_CLIENT_TIME_ZONE), comparable with the app's stored strings.
+ * Now as a wall-clock ISO string in the client's time zone (their saved
+ * timeZone, else COACH_CLIENT_TIME_ZONE), comparable with the app's
+ * stored local strings.
  */
-export function nowLocalIso(
-  timeZone = process.env.COACH_CLIENT_TIME_ZONE ?? "America/New_York",
-): string {
-  try {
-    const parts = Object.fromEntries(
-      new Intl.DateTimeFormat("en-CA", {
-        timeZone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hourCycle: "h23",
-      })
-        .formatToParts(new Date())
-        .map((p) => [p.type, p.value]),
-    );
-    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.000`;
-  } catch {
-    return new Date().toISOString().replace("Z", "");
+export function nowLocalIso(timeZone?: string | null): string {
+  for (const tz of timeZoneCandidates(timeZone)) {
+    try {
+      const parts = Object.fromEntries(
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: tz,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hourCycle: "h23",
+        })
+          .formatToParts(new Date())
+          .map((p) => [p.type, p.value]),
+      );
+      return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.000`;
+    } catch {
+      // Unknown time zone name: try the next one.
+    }
   }
+  return new Date().toISOString().replace("Z", "");
 }
 
 /** Records the coach's visit (drives the "new shared media" flag). */
-export async function markCoachViewed(coachId: string, clientId: string): Promise<void> {
+export async function markCoachViewed(
+  coachId: string,
+  clientId: string,
+  timeZone?: string | null,
+): Promise<void> {
   try {
     await adminDb
       .collection("coaches")
@@ -144,7 +151,7 @@ export async function markCoachViewed(coachId: string, clientId: string): Promis
       .doc(clientId)
       .update({
         coachLastViewedAt: FieldValue.serverTimestamp(),
-        coachLastViewedLocal: nowLocalIso(),
+        coachLastViewedLocal: nowLocalIso(timeZone),
       });
   } catch (e) {
     console.error("markCoachViewed failed", e);

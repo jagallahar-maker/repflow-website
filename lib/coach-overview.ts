@@ -16,6 +16,7 @@ import {
   dayFromStored,
   goalEstimate,
   mondayOf,
+  todayDay,
   trendRate,
   trendWeightAt,
   type DayNum,
@@ -33,6 +34,8 @@ export type ClientFlag = {
 
 export type ClientOverview = {
   id: string;
+  /** Today on this client's calendar (their own time zone when saved). */
+  today: DayNum;
   name: string;
   email: string;
   lastWorkoutDay: DayNum | null;
@@ -66,7 +69,6 @@ export function weighInPoints(logs: { logDate?: string; weight?: number }[]): We
 export async function getClientOverview(
   clientId: string,
   summary: ClientSummaryDoc & { coachLastViewedLocal?: string },
-  today: DayNum,
 ): Promise<ClientOverview> {
   const [profile, sessions, logs, program, latestShared] = await Promise.all([
     getUserProfile(clientId),
@@ -75,6 +77,7 @@ export async function getClientOverview(
     getActiveProgram(clientId),
     getLatestSharedMediaTime(clientId),
   ]);
+  const today = todayDay(profile?.timeZone);
 
   const last = lastWorkoutDay(sessions);
   const daysSinceWorkout = last == null ? null : today - last;
@@ -157,6 +160,7 @@ export async function getClientOverview(
 
   return {
     id: clientId,
+    today,
     name: getBestDisplayName(summary, profile),
     email: getBestEmail(summary, profile),
     lastWorkoutDay: last,

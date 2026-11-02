@@ -25,6 +25,8 @@ export type ClientSummaryDoc = {
 export type UserProfileDoc = {
   /** The app stores the athlete's name as `name`. */
   name?: string;
+  /** IANA time zone saved by the app (build 20+), e.g. "America/Chicago". */
+  timeZone?: string;
   username?: string;
   displayName?: string;
   email?: string;
@@ -148,6 +150,7 @@ const PROFILE_FIELDS = [
   "coachId",
   "coachStatus",
   "coachDisplayName",
+  "timeZone",
 ];
 
 export async function getUserProfile(

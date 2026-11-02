@@ -90,9 +90,10 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
   ]);
   if (!summary) notFound();
   // Drives the dashboard's "new shared media since your last visit".
-  await markCoachViewed(session.coachId, clientId);
+  await markCoachViewed(session.coachId, clientId, profile?.timeZone);
 
-  const today = todayDay();
+  // The client's own calendar day (their saved time zone when present).
+  const today = todayDay(profile?.timeZone);
   const displayName = getBestDisplayName(summary, profile);
   const email = getBestEmail(summary, profile);
 

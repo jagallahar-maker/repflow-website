@@ -124,25 +124,33 @@ export function dayFromStored(
 }
 
 /**
- * Today on the client's calendar. The app doesn't store a timezone yet,
- * so this uses COACH_CLIENT_TIME_ZONE (default America/New_York).
+ * Time zones to try, in order: the client's own (users/{uid}.timeZone,
+ * saved by the app from build 20), then COACH_CLIENT_TIME_ZONE, then
+ * America/New_York.
  */
-export function todayDay(timeZone?: string, now: Date = new Date()): DayNum {
-  const tz =
-    timeZone ??
-    (typeof process !== "undefined" ? process.env.COACH_CLIENT_TIME_ZONE : undefined) ??
-    "America/New_York";
-  try {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(now); // "2026-11-01"
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(parts);
-    if (m) return dayNum(Number(m[1]), Number(m[2]), Number(m[3]));
-  } catch {
-    // Unknown timezone: fall through to UTC.
+export function timeZoneCandidates(timeZone?: string | null): string[] {
+  const env =
+    typeof process !== "undefined" ? process.env.COACH_CLIENT_TIME_ZONE : undefined;
+  return [timeZone, env, "America/New_York"].filter(
+    (tz): tz is string => typeof tz === "string" && tz.length > 0,
+  );
+}
+
+/** Today on the client's calendar (see timeZoneCandidates). */
+export function todayDay(timeZone?: string | null, now: Date = new Date()): DayNum {
+  for (const tz of timeZoneCandidates(timeZone)) {
+    try {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(now); // "2026-11-01"
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(parts);
+      if (m) return dayNum(Number(m[1]), Number(m[2]), Number(m[3]));
+    } catch {
+      // Unknown time zone name: try the next one.
+    }
   }
   return Math.floor(now.getTime() / MS_PER_DAY);
 }

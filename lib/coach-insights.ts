@@ -50,7 +50,10 @@ export function sessionDay(s: SessionDoc): DayNum | null {
   return dayFromStored(s.startTime ?? s.createdAt);
 }
 
+/** Same formula as the app (lib/utils/one_rep_max.dart). */
 export function epley(weightLb: number, reps: number): number {
+  if (weightLb <= 0 || reps <= 0) return 0;
+  if (reps === 1) return weightLb;
   return weightLb * (1 + reps / 30);
 }
 

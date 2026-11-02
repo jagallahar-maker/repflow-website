@@ -108,3 +108,14 @@ test("stored dates use the client's wall-clock day", () => {
     TODAY,
   );
 });
+
+test("today uses the client's saved time zone, falling back on bad names", () => {
+  const t = new Date("2026-11-02T06:30:00Z"); // Nov 2 01:30 New York, Nov 1 22:30 LA
+  assert.equal(todayDay("America/Los_Angeles", t), TODAY);
+  assert.equal(todayDay("America/New_York", t), TODAY + 1);
+  // A garbage name falls through to COACH_CLIENT_TIME_ZONE / New York.
+  const saved = process.env.COACH_CLIENT_TIME_ZONE;
+  delete process.env.COACH_CLIENT_TIME_ZONE;
+  assert.equal(todayDay("Not/AZone", t), TODAY + 1);
+  if (saved !== undefined) process.env.COACH_CLIENT_TIME_ZONE = saved;
+});
