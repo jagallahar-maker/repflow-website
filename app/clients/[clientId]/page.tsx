@@ -12,6 +12,8 @@ import WeightTrendChart, { type TrendDay } from "@/components/charts/WeightTrend
 import {
   MEASUREMENT_SITES,
   getActiveProgram,
+  getBodyFatLogs,
+  getGoals,
   getActiveStrategy,
   getDailyIntake,
   getMeasurements,
@@ -53,6 +55,7 @@ import {
   type SessionDoc,
 } from "@/lib/coach-insights.ts";
 import { getCoachNotes } from "@/lib/coach-notes-data";
+import { evaluateGoal, formatGoalValue, goalTitle, type GoalRow } from "@/lib/coach-goals.ts";
 import { relativeDay, weighInPoints } from "@/lib/coach-overview.ts";
 import {
   isWeekdaySchedule,
@@ -103,13 +106,15 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
   const today = todayDay(profile?.timeZone);
 
   // Only what the client shares is read at all.
-  const [logs, sessions, program, measurements, strategy, intake] = await Promise.all([
+  const [logs, sessions, program, measurements, strategy, intake, bodyFat, goalDocs] = await Promise.all([
     sharing.body ? getWeighIns(clientId, 1500) : Promise.resolve([]),
     sharing.workouts ? getSessions(clientId, 300, "full") : Promise.resolve([]),
     sharing.workouts ? getActiveProgram(clientId) : Promise.resolve(null),
     sharing.body ? getMeasurements(clientId) : Promise.resolve([]),
     sharing.nutrition ? getActiveStrategy(clientId) : Promise.resolve(null),
     sharing.nutrition ? getDailyIntake(clientId, today, 28) : Promise.resolve(null),
+    sharing.body ? getBodyFatLogs(clientId) : Promise.resolve([]),
+    sharing.body ? getGoals(clientId) : Promise.resolve([]),
   ]);
   // Drives the dashboard's "new shared media since your last visit".
   await markCoachViewed(session.coachId, clientId, profile?.timeZone);
@@ -186,6 +191,28 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
       ),
     };
   });
+
+  // ── Body fat and goals (body) ───────────────────────────────────────
+  const latestFat = bodyFat.length ? bodyFat[bodyFat.length - 1] : null;
+  const leanMass =
+    latestFat && currentWeight != null ? currentWeight * (1 - latestFat.percent / 100) : null;
+  const goals = goalDocs.slice();
+  // Same as the app: the weight goal exists whenever goalWeight is set.
+  if (goalWeight != null && !goals.some((g) => g.type === "weight")) {
+    const first = points.length ? points[points.length - 1] : null;
+    goals.unshift({ id: "weight", type: "weight", startValue: first?.weightLb });
+  }
+  const goalRows: GoalRow[] = goals.map((g) =>
+    evaluateGoal(g, {
+      today,
+      weights: points,
+      goalWeight,
+      bodyFat,
+      measurements,
+      sessions: sharing.workouts ? sessions : null,
+    }),
+  );
+  const siteName = (key: string) => MEASUREMENT_SITES.find((s) => s.key === key)?.name ?? key;
 
   // ── Nutrition / Strategy ────────────────────────────────────────────
   const strategyStatus: TrendStatus | null =
@@ -289,6 +316,66 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
           <section className={`mt-6 ${CARD}`}>
             <SectionTitle title="Measurements" note="inches · change since first entry" />
             <MeasurementsPanel sites={measurementSites} today={today} />
+          </section>
+        )}
+
+        {/* ── Body fat & goals (body) ────────────────────────────────── */}
+        {sharing.body && (latestFat || goalRows.length > 0) && (
+          <section className={`mt-6 ${CARD}`}>
+            <SectionTitle title="Body fat & goals" note="from the client's Body tab" />
+            {latestFat && (
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <Stat
+                  label="Body fat"
+                  value={`${latestFat.percent.toFixed(1)}%`}
+                  sub={`${latestFat.method === "navy" ? "US Navy estimate" : "Entered"} · ${formatDay(latestFat.day)}`}
+                />
+                <Stat
+                  label="Lean mass"
+                  value={leanMass != null ? `${leanMass.toFixed(1)} lb` : "--"}
+                  sub={currentWeight != null ? `at ${currentWeight.toFixed(1)} lb` : undefined}
+                />
+                <Stat
+                  label="Since first"
+                  value={
+                    bodyFat.length >= 2
+                      ? `${(latestFat.percent - bodyFat[0].percent) > 0 ? "+" : ""}${(latestFat.percent - bodyFat[0].percent).toFixed(1)} pts`
+                      : "--"
+                  }
+                  sub={`${bodyFat.length} entr${bodyFat.length === 1 ? "y" : "ies"}`}
+                />
+              </div>
+            )}
+            {goalRows.length > 0 && (
+              <ul className="space-y-3">
+                {goalRows.map((row) => (
+                  <li key={row.goal.id}>
+                    <div className="flex items-baseline justify-between gap-2 text-sm">
+                      <span className="font-semibold truncate">{goalTitle(row.goal, siteName)}</span>
+                      <span className={row.achieved ? LIME : "text-zinc-400"}>
+                        {row.achieved
+                          ? row.goal.type === "workoutsPerWeek" ? "Met this week" : "Achieved"
+                          : `${Math.round(row.progress * 100)}%`}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                      <div
+                        className="h-full bg-[#9EFD06]"
+                        style={{ width: `${Math.round(row.progress * 100)}%` }}
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {row.missing
+                        ? `Target ${formatGoalValue(row.target, row.unit)} · ${row.missing}`
+                        : row.goal.type === "workoutsPerWeek"
+                          ? `${row.current ?? 0} of ${row.target} this week${row.weekAll !== row.weekLive ? ` (${row.weekLive} live, ${row.weekAll} incl. logged later)` : ""}`
+                          : `${formatGoalValue(row.start, row.unit)} → ${formatGoalValue(row.current, row.unit)} → ${formatGoalValue(row.target, row.unit)}`}
+                      {row.goal.targetDay != null ? ` · by ${formatDay(row.goal.targetDay)}` : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         )}
 

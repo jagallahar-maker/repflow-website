@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { dayFromStored, dayKey, timeZoneCandidates, type DayNum } from "@/lib/trend.ts";
 import type { ProgramDoc } from "@/lib/coach-programs.ts";
 import type { SessionDoc } from "@/lib/coach-insights.ts";
+import type { BodyFatEntry, GoalDoc } from "@/lib/coach-goals.ts";
 
 /**
  * Field-limited reads for the coach portal. Every query names its fields
@@ -217,6 +218,49 @@ export async function getMeasurements(clientId: string): Promise<MeasurementEntr
     out.push({ bodyPart, day, inches: cm ? Math.round((value / 2.54) * 100) / 100 : value });
   }
   return out.sort((a, b) => a.day - b.day);
+}
+
+// ── Body fat and goals (body switch) ──────────────────────────────────────
+
+/** users/{uid}/body_fat_logs, oldest first. */
+export async function getBodyFatLogs(clientId: string): Promise<BodyFatEntry[]> {
+  const snap = await userCol(clientId, "body_fat_logs").select("date", "percent", "method").get();
+  const out: BodyFatEntry[] = [];
+  for (const d of snap.docs) {
+    const percent = d.get("percent");
+    const day = dayFromStored(d.get("date"));
+    if (typeof percent !== "number" || day == null) continue;
+    out.push({ day, percent, method: String(d.get("method") ?? "manual") });
+  }
+  return out.sort((a, b) => a.day - b.day);
+}
+
+const GOAL_TYPES = new Set(["weight", "bodyFat", "measurement", "lift", "workoutsPerWeek"]);
+
+/** users/{uid}/goals. The weight goal's target is users/{uid}.goalWeight. */
+export async function getGoals(clientId: string): Promise<GoalDoc[]> {
+  const snap = await userCol(clientId, "goals").get();
+  const out: GoalDoc[] = [];
+  for (const d of snap.docs) {
+    const g = d.data();
+    if (!GOAL_TYPES.has(g.type)) continue;
+    const num = (v: unknown) => (typeof v === "number" ? v : undefined);
+    out.push({
+      id: d.id,
+      type: g.type,
+      site: typeof g.site === "string" ? g.site : undefined,
+      exerciseId: typeof g.exerciseId === "string" ? g.exerciseId : undefined,
+      exerciseName: typeof g.exerciseName === "string" ? g.exerciseName : undefined,
+      liftMetric: typeof g.liftMetric === "string" ? g.liftMetric : undefined,
+      reps: num(g.reps),
+      startValue: num(g.startValue),
+      target: g.type === "weight" ? undefined : num(g.target),
+      targetDay: dayFromStored(g.targetDate),
+      achievedDay: dayFromStored(g.achievedAt),
+      countBackdated: g.countBackdated !== false,
+    });
+  }
+  return out;
 }
 
 // ── Nutrition (nutrition switch) ──────────────────────────────────────────
