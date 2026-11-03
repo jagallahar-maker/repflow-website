@@ -11,7 +11,7 @@ export default function Footer() {
           <span className="ml-3 text-zinc-600">© {year}</span>
         </div>
 
-        <nav className="flex items-center gap-6 text-sm">
+        <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <Link href="/privacy" className="hover:text-lime-400 transition">
             Privacy
           </Link>
@@ -23,6 +23,9 @@ export default function Footer() {
           </Link>
           <Link href="/support" className="hover:text-lime-400 transition">
             Support
+          </Link>
+          <Link href="/takedown" className="hover:text-lime-400 transition">
+            Request removal
           </Link>
         </nav>
       </div>

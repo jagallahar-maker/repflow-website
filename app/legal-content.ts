@@ -59,8 +59,8 @@ export const termsOfService: LegalDoc = {
     {
       "heading": "6. Copyright and takedown requests",
       "paragraphs": [
-        "Copyright: if you believe content on Repflow infringes your copyright, email repflowtraining@gmail.com with: your contact details; a description of the copyrighted work; where the content is in Repflow (the post, comment, or profile); a statement that you have a good-faith belief the use isn't authorized; a statement, under penalty of perjury, that your notice is accurate and you are the owner or authorized to act for the owner; and your physical or electronic signature. We remove content that infringes and disable the accounts of repeat infringers. TODO(legal): register a DMCA designated agent and replace this contact.",
-        "Intimate images: if an intimate image or video of you is on Repflow without your consent, send a removal request from Settings → Legal → Request removal, or by email to repflowtraining@gmail.com, including: your name and contact information; your physical or electronic signature; where the content is in Repflow; and a brief statement that you have a good-faith belief the image was shared without your consent. We remove it, and identical copies we can find, within 48 hours of receiving a valid request. TODO(legal): confirm the TAKE IT DOWN Act process wording."
+        "Copyright: if you believe content on Repflow infringes your copyright, send a notice from Settings → Legal & Safety → Request removal in the app, at repflowcoach.com/takedown, or by email to repflowtraining@gmail.com, with: your contact details; a description of the copyrighted work; where the content is in Repflow (the post, comment, or profile); a statement that you have a good-faith belief the use isn't authorized; a statement, under penalty of perjury, that your notice is accurate and you are the owner or authorized to act for the owner; and your physical or electronic signature. We remove content that infringes and disable the accounts of repeat infringers. TODO(legal): register a DMCA designated agent and replace this contact.",
+        "Intimate images: if an intimate image or video of you is on Repflow without your consent, send a removal request from Settings → Legal & Safety → Request removal in the app, at repflowcoach.com/takedown, or by email to repflowtraining@gmail.com, including: your name and contact information; your physical or electronic signature; where the content is in Repflow; and a brief statement that you have a good-faith belief the image was shared without your consent. We remove it, and identical copies we can find, within 48 hours of receiving a valid request. TODO(legal): confirm the TAKE IT DOWN Act process wording."
       ]
     },
     {
@@ -159,7 +159,7 @@ export const communityGuidelines: LegalDoc = {
       "heading": "What we do",
       "paragraphs": [
         "We remove content that breaks these guidelines and can suspend or permanently ban the accounts responsible. Some words are blocked automatically. Serious cases may be reported to law enforcement.",
-        "To request removal of an intimate image of you, or to send a copyright notice, see Settings → Legal → Request removal, or email repflowtraining@gmail.com. Valid intimate-image requests are handled within 48 hours."
+        "To request removal of an intimate image of you, or to send a copyright notice, see Settings → Legal & Safety → Request removal in the app, repflowcoach.com/takedown, or email repflowtraining@gmail.com. Valid intimate-image requests are handled within 48 hours."
       ]
     }
   ]
