@@ -1,6 +1,7 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 function getPrivateKey(): string {
   // Prefer base64-encoded key when available — survives any env-var
@@ -33,3 +34,8 @@ const app =
 
 export const adminDb = getFirestore(app);
 export const adminAuth = getAuth(app);
+
+/** Default bucket (signed URLs for check-in photos). */
+export function adminBucket() {
+  return getStorage(app).bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+}

@@ -1,6 +1,15 @@
 import CoachHeader from "@/components/CoachHeader";
 import CoachNotesSection from "@/components/CoachNotesSection";
 import CoachSharedMediaSection from "@/components/CoachSharedMediaSection";
+import CoachMessagesPanel from "@/components/CoachMessagesPanel";
+import CheckinDaySelect from "@/components/CheckinDaySelect";
+import {
+  ADHERENCE_LABELS,
+  DEFAULT_WEEKDAY,
+  STRATEGY_STATUS_LABELS,
+  checkinLabel,
+  checkinState,
+} from "@/lib/coach-checkins.ts";
 import EndCoachingButton from "@/components/EndCoachingButton";
 import MeasurementsPanel, { type MeasurementSite } from "@/components/MeasurementsPanel";
 import ActivityHeatmap from "@/components/charts/ActivityHeatmap";
@@ -13,7 +22,10 @@ import {
   MEASUREMENT_SITES,
   getActiveProgram,
   getBodyFatLogs,
+  getCheckinPhotoUrls,
+  getCheckins,
   getGoals,
+  getMessages,
   getActiveStrategy,
   getDailyIntake,
   getMeasurements,
@@ -82,13 +94,15 @@ import { notFound } from "next/navigation";
 
 type ClientPageProps = {
   params: Promise<{ clientId: string }>;
+  searchParams: Promise<{ reply?: string }>;
 };
 
 const CARD = "rounded-2xl border border-zinc-800 bg-zinc-950 p-4 sm:p-5";
 const LIME = "text-[#9EFD06]";
 
-export default async function ClientDetailPage({ params }: ClientPageProps) {
+export default async function ClientDetailPage({ params, searchParams }: ClientPageProps) {
   const { clientId } = await params;
+  const { reply } = await searchParams;
   const session = await requireCoach();
 
   if (!(await verifyClientBelongsToCoach(session.coachId, clientId))) {
@@ -116,6 +130,23 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
     sharing.body ? getBodyFatLogs(clientId) : Promise.resolve([]),
     sharing.body ? getGoals(clientId) : Promise.resolve([]),
   ]);
+  // Check-ins (check-ins switch) and the message thread (always: it's
+  // the conversation itself, not shared data).
+  const [checkins, messages] = await Promise.all([
+    sharing.checkins ? getCheckins(clientId, 12) : Promise.resolve([]),
+    getMessages(session.coachId, clientId),
+  ]);
+  const photoUrls = sharing.checkins
+    ? await getCheckinPhotoUrls(clientId, checkins.slice(0, 4).flatMap((c) => c.photoIds))
+    : {};
+  const checkinWeekday =
+    typeof summary.checkinWeekday === "number" ? summary.checkinWeekday : DEFAULT_WEEKDAY;
+  const checkinNow = checkinState(
+    checkinWeekday,
+    today,
+    checkins.length ? { day: checkins[0].day, replied: checkins[0].replied } : null,
+  );
+  const replyTo = reply ? checkins.find((c) => c.id === reply) ?? null : null;
   // Drives the dashboard's "new shared media since your last visit".
   await markCoachViewed(session.coachId, clientId, profile?.timeZone);
 
@@ -409,6 +440,114 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
           )}
         </section>
         )}
+
+        {/* ── Check-ins (check-ins switch) ───────────────────────────── */}
+        {sharing.checkins ? (
+          <section className={`mt-6 ${CARD}`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
+              <h2 className="text-lg font-semibold">
+                Check-ins{" "}
+                <span
+                  className={`ml-2 align-middle text-xs px-2 py-0.5 rounded-full border ${
+                    checkinNow.kind === "overdue"
+                      ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                      : checkinNow.kind === "received"
+                        ? "border-[#9EFD06]/30 bg-[#9EFD06]/10 text-[#9EFD06]"
+                        : "border-zinc-700 text-zinc-400"
+                  }`}
+                >
+                  {checkinLabel(checkinNow)}
+                </span>
+              </h2>
+              <CheckinDaySelect clientId={clientId} weekday={checkinWeekday} />
+            </div>
+            {checkins.length === 0 ? (
+              <p className="text-sm text-zinc-500">No check-ins yet.</p>
+            ) : (
+              <ul className="space-y-4">
+                {checkins.map((c) => (
+                  <li key={c.id} className="rounded-xl border border-zinc-900 bg-black p-3">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-semibold">{formatDay(c.day)}</span>
+                      <span className="text-xs text-zinc-500">
+                        {c.replied ? "Replied · " : ""}
+                        <Link href={`/clients/${clientId}?reply=${c.id}#messages`} className={LIME}>
+                          Reply
+                        </Link>
+                      </span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                      <Stat
+                        label="Weight"
+                        value={c.weightLb != null ? `${c.weightLb.toFixed(1)} lb` : "--"}
+                        sub={
+                          c.trendWeightLb != null
+                            ? `trend ${c.trendWeightLb.toFixed(1)}${c.trendLbPerWeek != null ? ` · ${c.trendLbPerWeek > 0 ? "+" : ""}${c.trendLbPerWeek.toFixed(2)} lb/wk` : ""}`
+                            : undefined
+                        }
+                      />
+                      <Stat label="Sleep · energy · stress" value={`${c.sleep} · ${c.energy} · ${c.stress}`} sub="1–5" />
+                      <Stat
+                        label="Training · nutrition"
+                        value={`${(ADHERENCE_LABELS[c.trainingAdherence] ?? "--").split(" ")[0]} · ${(ADHERENCE_LABELS[c.nutritionAdherence] ?? "--").split(" ")[0]}`}
+                        sub="sessions / days on plan"
+                      />
+                      {sharing.nutrition && c.strategyStatus ? (
+                        <Stat
+                          label="Strategy then"
+                          value={STRATEGY_STATUS_LABELS[c.strategyStatus] ?? c.strategyStatus}
+                          sub={
+                            c.strategyGoalRate != null
+                              ? `goal ${c.strategyGoalRate > 0 ? "+" : ""}${c.strategyGoalRate.toFixed(2)} lb/wk`
+                              : undefined
+                          }
+                        />
+                      ) : (
+                        <Stat label="Strategy then" value="--" sub={sharing.nutrition ? "no program" : "nutrition not shared"} />
+                      )}
+                    </div>
+                    {[
+                      ["Wins", c.wins],
+                      ["Struggles", c.struggles],
+                      ["Questions", c.questions],
+                    ].map(([k, v]) =>
+                      v ? (
+                        <p key={k} className="mt-2 text-sm text-zinc-300 whitespace-pre-wrap break-words">
+                          <span className="text-zinc-500">{k}: </span>
+                          {v}
+                        </p>
+                      ) : null,
+                    )}
+                    {c.photoIds.some((id) => photoUrls[id]) && (
+                      <div className="mt-2 flex gap-2 overflow-x-auto">
+                        {c.photoIds
+                          .filter((id) => photoUrls[id])
+                          .map((id) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img key={id} src={photoUrls[id]} alt="Check-in photo" className="h-32 rounded-lg object-cover" />
+                          ))}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : (
+          <NotSharedSection title="Check-ins" what="weekly check-ins" />
+        )}
+
+        {/* ── Messages ───────────────────────────────────────────────── */}
+        <section id="messages" className={`mt-6 ${CARD}`}>
+          <SectionTitle title="Messages" note="text only · kept for safety" />
+          <CoachMessagesPanel
+            clientId={clientId}
+            clientName={displayName}
+            messages={messages}
+            unread={summary.unreadByCoach ?? 0}
+            replyTo={replyTo ? { checkinId: replyTo.id, label: formatDay(replyTo.day) } : null}
+          />
+        </section>
 
         <div className="mt-6">
           <CoachNotesSection clientId={clientId} notes={coachNotes} />

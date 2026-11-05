@@ -1,5 +1,6 @@
 import {
   getActiveProgram,
+  getCheckins,
   getDailyIntake,
   getLatestSharedMediaTime,
   getSessions,
@@ -7,6 +8,7 @@ import {
   loggedDaysLast7,
 } from "@/lib/coach-client-data.ts";
 import { getCoachSharing, type CoachSharing } from "@/lib/coach-sharing.ts";
+import { DEFAULT_WEEKDAY, checkinState, type CheckinState } from "@/lib/coach-checkins.ts";
 import {
   getBestDisplayName,
   getBestEmail,
@@ -27,6 +29,9 @@ import {
 } from "@/lib/trend.ts";
 
 export type FlagKey =
+  | "checkinOverdue"
+  | "checkinReceived"
+  | "unreadMessages"
   | "noWorkout"
   | "missedSessions"
   | "noWeighIn"
@@ -63,6 +68,10 @@ export type ClientOverview = {
   goalWeight: number | null;
   goalText: string | null;
   lastWeighInDay: DayNum | null;
+  /** Weekly check-in state (check-ins shared only). */
+  checkin: CheckinState | null;
+  /** Client messages the coach hasn't read. */
+  unreadMessages: number;
   flags: ClientFlag[];
   needsAttention: boolean;
   /** Higher = more urgent; used for sorting. */
@@ -91,7 +100,7 @@ export async function getClientOverview(
     getCoachSharing(clientId),
   ]);
   const today = todayDay(profile?.timeZone);
-  const [sessions, logs, program, latestShared, intake] = await Promise.all([
+  const [sessions, logs, program, latestShared, intake, checkins] = await Promise.all([
     sharing.workouts ? getSessions(clientId, 60, "light") : Promise.resolve([]),
     sharing.body ? getWeighIns(clientId, 40) : Promise.resolve([]),
     sharing.workouts ? getActiveProgram(clientId) : Promise.resolve(null),
@@ -99,6 +108,7 @@ export async function getClientOverview(
       ? getLatestSharedMediaTime(clientId, sharing)
       : Promise.resolve(null),
     sharing.nutrition ? getDailyIntake(clientId, today, 8) : Promise.resolve(null),
+    sharing.checkins ? getCheckins(clientId, 1) : Promise.resolve([]),
   ]);
   const foodLoggedDays = intake ? loggedDaysLast7(intake, today) : null;
 
@@ -173,6 +183,26 @@ export async function getClientOverview(
       level: "warn",
     });
   }
+  const checkin = sharing.checkins
+    ? checkinState(
+        typeof summary.checkinWeekday === "number" ? summary.checkinWeekday : DEFAULT_WEEKDAY,
+        today,
+        checkins.length ? { day: checkins[0].day, replied: checkins[0].replied } : null,
+      )
+    : null;
+  if (checkin?.kind === "overdue" && checkins.length > 0) {
+    flags.push({ key: "checkinOverdue", label: `Check-in overdue ${checkin.daysLate} day${checkin.daysLate === 1 ? "" : "s"}`, level: "warn" });
+  } else if (checkin?.kind === "received" && !checkin.replied) {
+    flags.push({ key: "checkinReceived", label: "Check-in to review", level: "info" });
+  }
+  const unreadMessages = Math.max(0, summary.unreadByCoach ?? 0);
+  if (unreadMessages > 0) {
+    flags.push({
+      key: "unreadMessages",
+      label: `${unreadMessages} unread message${unreadMessages === 1 ? "" : "s"}`,
+      level: "info",
+    });
+  }
   const lastViewed =
     summary.coachLastViewedLocal ??
     (typeof summary.linkedAt === "string" ? summary.linkedAt : null);
@@ -181,6 +211,9 @@ export async function getClientOverview(
   }
 
   const weights: Record<FlagKey, number> = {
+    checkinOverdue: 2,
+    checkinReceived: 1,
+    unreadMessages: 1,
     missedSessions: 4,
     noWorkout: 3,
     trendAway: 2,
@@ -206,6 +239,8 @@ export async function getClientOverview(
     goalWeight,
     goalText,
     lastWeighInDay,
+    checkin,
+    unreadMessages,
     flags,
     needsAttention: flags.some((f) => f.level === "warn"),
     score,

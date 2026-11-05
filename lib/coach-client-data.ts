@@ -1,5 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebase-admin";
+import { adminBucket, adminDb } from "@/lib/firebase-admin";
 import { dayFromStored, dayKey, timeZoneCandidates, type DayNum } from "@/lib/trend.ts";
 import type { ProgramDoc } from "@/lib/coach-programs.ts";
 import type { SessionDoc } from "@/lib/coach-insights.ts";
@@ -261,6 +261,127 @@ export async function getGoals(clientId: string): Promise<GoalDoc[]> {
     });
   }
   return out;
+}
+
+// ── Check-ins (check-ins switch) and messages ──────────────────────────────
+
+export type CheckinDoc = {
+  id: string;
+  day: DayNum;
+  date: string;
+  weightLb: number | null;
+  trendWeightLb: number | null;
+  trendLbPerWeek: number | null;
+  strategyStatus: string | null;
+  strategyGoalRate: number | null;
+  sleep: number;
+  energy: number;
+  stress: number;
+  trainingAdherence: string;
+  nutritionAdherence: string;
+  wins: string;
+  struggles: string;
+  questions: string;
+  photoIds: string[];
+  replied: boolean;
+};
+
+function toCheckin(id: string, g: FirebaseFirestore.DocumentData): CheckinDoc | null {
+  const day = dayFromStored(g.date);
+  if (day == null) return null;
+  const num = (v: unknown) => (typeof v === "number" ? v : null);
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  const scale = (v: unknown) => (typeof v === "number" ? Math.min(5, Math.max(1, Math.round(v))) : 3);
+  return {
+    id,
+    day,
+    date: str(g.date),
+    weightLb: num(g.weightLb),
+    trendWeightLb: num(g.trendWeightLb),
+    trendLbPerWeek: num(g.trendLbPerWeek),
+    strategyStatus: typeof g.strategyStatus === "string" ? g.strategyStatus : null,
+    strategyGoalRate: num(g.strategyGoalRate),
+    sleep: scale(g.sleep),
+    energy: scale(g.energy),
+    stress: scale(g.stress),
+    trainingAdherence: str(g.trainingAdherence),
+    nutritionAdherence: str(g.nutritionAdherence),
+    wins: str(g.wins),
+    struggles: str(g.struggles),
+    questions: str(g.questions),
+    photoIds: Array.isArray(g.photoIds) ? g.photoIds.filter((x: unknown) => typeof x === "string") : [],
+    replied: g.coachRepliedAt != null,
+  };
+}
+
+/** Newest first. */
+export async function getCheckins(clientId: string, limit = 12): Promise<CheckinDoc[]> {
+  const snap = await userCol(clientId, "checkins").orderBy("date", "desc").limit(limit).get();
+  return snap.docs.map((d) => toCheckin(d.id, d.data())).filter((c): c is CheckinDoc => c != null);
+}
+
+/** Signed links (1 h) for a check-in's photos that are shared with the coach. */
+export async function getCheckinPhotoUrls(
+  clientId: string,
+  photoIds: string[],
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  if (photoIds.length === 0) return out;
+  const docs = await adminDb.getAll(
+    ...photoIds.slice(0, 8).map((id) => userCol(clientId, "progress_photos").doc(id)),
+  );
+  await Promise.all(
+    docs.map(async (d) => {
+      if (!d.exists || d.get("sharedWithCoach") !== true) return;
+      try {
+        const [url] = await adminBucket()
+          .file(`progress_photos/${clientId}/${d.id}.jpg`)
+          .getSignedUrl({ action: "read", expires: Date.now() + 60 * 60 * 1000 });
+        out[d.id] = url;
+      } catch (e) {
+        console.error("check-in photo url failed", e);
+      }
+    }),
+  );
+  return out;
+}
+
+export type MessageDoc = {
+  id: string;
+  sender: "coach" | "client";
+  text: string;
+  createdAt: string | null;
+  read: boolean;
+  checkinId: string | null;
+};
+
+/** The coach ↔ client thread, oldest first (last [limit]). */
+export async function getMessages(
+  coachId: string,
+  clientId: string,
+  limit = 200,
+): Promise<MessageDoc[]> {
+  const snap = await adminDb
+    .collection("coaches").doc(coachId)
+    .collection("clients").doc(clientId)
+    .collection("messages")
+    .orderBy("createdAt", "desc")
+    .limit(limit)
+    .get();
+  return snap.docs
+    .map((d) => {
+      const g = d.data();
+      const at = g.createdAt?.toDate?.() as Date | undefined;
+      return {
+        id: d.id,
+        sender: g.sender === "client" ? "client" : "coach",
+        text: typeof g.text === "string" ? g.text : "",
+        createdAt: at ? at.toISOString() : null,
+        read: g.readAt != null,
+        checkinId: typeof g.checkinId === "string" ? g.checkinId : null,
+      } as MessageDoc;
+    })
+    .reverse();
 }
 
 // ── Nutrition (nutrition switch) ──────────────────────────────────────────

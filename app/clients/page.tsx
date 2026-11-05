@@ -1,6 +1,7 @@
 import CoachHeader from "@/components/CoachHeader";
 import InviteCodeCard from "@/components/InviteCodeCard";
 import { formatShortDate, getCoachClients } from "@/lib/coach-data";
+import { formatDay } from "@/lib/trend.ts";
 import {
   getClientOverview,
   relativeDay,
@@ -11,6 +12,7 @@ import {
   verifyClientBelongsToCoach,
 } from "@/lib/coach-session";
 import Link from "next/link";
+import { checkinLabel } from "@/lib/coach-checkins.ts";
 
 type PastClient = {
   id: string;
@@ -214,7 +216,14 @@ function ClientRow({ row }: { row: ClientOverview }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-base sm:text-lg font-semibold truncate">{row.name}</div>
+          <div className="text-base sm:text-lg font-semibold truncate">
+            {row.name}
+            {row.unreadMessages > 0 && (
+              <span className="ml-2 align-middle text-xs font-bold px-2 py-0.5 rounded-full bg-[#9EFD06] text-black">
+                {row.unreadMessages} new
+              </span>
+            )}
+          </div>
           <div className="text-xs sm:text-sm text-zinc-500 truncate">{row.email}</div>
         </div>
         {!row.needsAttention && (
@@ -243,9 +252,18 @@ function ClientRow({ row }: { row: ClientOverview }) {
 
       <div
         className={`mt-4 grid gap-2 grid-cols-2 text-sm ${
-          row.sharing.nutrition ? "md:grid-cols-5" : "md:grid-cols-4"
+          row.sharing.nutrition ? "md:grid-cols-6" : "md:grid-cols-5"
         }`}
       >
+        {row.checkin ? (
+          <Cell
+            label="Check-in"
+            value={checkinLabel(row.checkin)}
+            sub={row.checkin.kind === "received" ? formatDay(row.checkin.day) : undefined}
+          />
+        ) : (
+          <NotSharedCell label="Check-in" />
+        )}
         {row.sharing.workouts ? (
           <>
             <Cell label="Last workout" value={relativeDay(row.lastWorkoutDay, row.today)} />

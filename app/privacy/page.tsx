@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
-          Effective date: May 3, 2026 · Last updated: November 1, 2026
+          Effective date: May 3, 2026 · Last updated: November 5, 2026
         </p>
 
         <div className="mt-10 space-y-6 text-zinc-300 leading-relaxed">
@@ -295,7 +295,14 @@ export default function PrivacyPage() {
               (off unless you turn it on). Switching something off hides it
               from your coach right away. Each time your coach opens your
               data we record it, and the app shows when your coach last
-              viewed it. Coaches never see your messages or social activity.
+              viewed it. Check-ins you send (weight, sleep, energy, stress,
+              training and nutrition adherence, your notes, and any photos you
+              attach, which are shared with your coach) are stored in your
+              account. Messages between you and your coach are text only,
+              stored by Repflow, checked by an automatic language filter, and
+              kept read-only after coaching ends, for safety; we review a
+              message only if it&apos;s reported. Coaches never see your social
+              activity or your conversations with other users.
               You can disconnect any time, and a coach can end the
               connection; either way the coach loses access to your data
               right away. Disconnecting doesn&apos;t delete anything from

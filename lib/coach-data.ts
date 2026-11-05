@@ -17,6 +17,11 @@ export type ClientSummaryDoc = {
   endedAt?: string | { toDate?: () => Date } | null;
   /** Wall-clock (client timezone) time of the coach's last visit. */
   coachLastViewedLocal?: string;
+  /** Check-in weekday, 1 = Mon … 7 = Sun (setClientCheckinDay). */
+  checkinWeekday?: number;
+  /** Kept by functions/src/coachMessages.ts. */
+  unreadByCoach?: number;
+  lastMessageFrom?: string;
   createdAt?: string | { toDate?: () => Date } | null;
   updatedAt?: string | { toDate?: () => Date } | null;
 };
