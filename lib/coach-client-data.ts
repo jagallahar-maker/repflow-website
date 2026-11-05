@@ -258,6 +258,7 @@ export async function getGoals(clientId: string): Promise<GoalDoc[]> {
       targetDay: dayFromStored(g.targetDate),
       achievedDay: dayFromStored(g.achievedAt),
       countBackdated: g.countBackdated !== false,
+      countCardio: g.countCardio !== false,
     });
   }
   return out;

@@ -5,8 +5,9 @@
  *
  * Goal types: weight (target = users/{uid}.goalWeight, never copied),
  * bodyFat, measurement (site), lift (best weight for ≥ reps, or best
- * Epley e1RM), workoutsPerWeek (completed workouts this Mon–Sun week, live
- * and including backdated).
+ * Epley e1RM), workoutsPerWeek (completed sessions this Mon–Sun week:
+ * strength, plus cardio / sport / mobility when countCardio (default on),
+ * live and including backdated when countBackdated (default on)).
  */
 import { epley, sessionDay, type SessionDoc } from "./coach-insights.ts";
 import { mondayOf, trendWeightAt, type DayNum } from "./trend.ts";
@@ -26,7 +27,12 @@ export type GoalDoc = {
   targetDay?: DayNum | null;
   achievedDay?: DayNum | null;
   countBackdated?: boolean;
+  /** Workouts per week: cardio sessions count too (missing = true). */
+  countCardio?: boolean;
 };
+
+/** Same as the app's ActivitySession.isCardioActivity. */
+const CARDIO_CATEGORIES = new Set(["cardio", "sport", "mobility", "accessory"]);
 
 export type GoalContext = {
   today: DayNum;
@@ -96,6 +102,11 @@ export function evaluateGoal(goal: GoalDoc, ctx: GoalContext): GoalRow {
       if (!s.completed) continue;
       const d = sessionDay(s);
       if (d == null || d < monday || d > ctx.today) continue;
+      // Strength sessions (older ones may have no category) always count;
+      // cardio only with countCardio. Same rule as the app.
+      const cardio = CARDIO_CATEGORIES.has(s.category ?? "");
+      const strength = !cardio && (s.category == null || s.category === "strength");
+      if (!strength && !(cardio && goal.countCardio !== false)) continue;
       all++;
       if (!s.isBackdated) live++;
     }

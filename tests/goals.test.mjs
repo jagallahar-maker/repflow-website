@@ -8,10 +8,11 @@ import { dayNum } from "../lib/trend.ts";
 const today = dayNum(2026, 11, 4); // Wednesday
 const base = { today, weights: [], goalWeight: null, bodyFat: [], measurements: [], sessions: [] };
 
-const session = (y, m, d, weightLb, reps, isBackdated = false) => ({
+const session = (y, m, d, weightLb, reps, isBackdated = false, category = "strength") => ({
   startTime: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}T10:00:00.000`,
   completed: true,
   isBackdated,
+  category,
   exercises: [{ exerciseId: "bench", sets: [{ weightLb, reps, isCompleted: true }] }],
 });
 
@@ -49,6 +50,21 @@ test("workouts per week counts live and backdated", () => {
   const live = evaluateGoal({ id: "h", type: "workoutsPerWeek", target: 2, countBackdated: false },
     { ...base, sessions });
   assert.equal(live.achieved, false);
+});
+
+test("workouts per week counts cardio unless countCardio is off", () => {
+  const run = { ...session(2026, 11, 3, 0, 0, false, "cardio"), exercises: [] };
+  const sessions = [session(2026, 11, 2, 100, 5), run, session(2026, 11, 4, 100, 5, false, "other")];
+  const withCardio = evaluateGoal({ id: "h", type: "workoutsPerWeek", target: 2 }, { ...base, sessions });
+  assert.equal(withCardio.weekAll, 2); // strength + run; unknown category ignored
+  assert.equal(withCardio.achieved, true);
+  const strengthOnly = evaluateGoal({ id: "h", type: "workoutsPerWeek", target: 2, countCardio: false },
+    { ...base, sessions });
+  assert.equal(strengthOnly.weekAll, 1);
+  assert.equal(strengthOnly.achieved, false);
+  const legacy = evaluateGoal({ id: "h", type: "workoutsPerWeek", target: 1 },
+    { ...base, sessions: [{ ...session(2026, 11, 2, 100, 5), category: undefined }] });
+  assert.equal(legacy.weekAll, 1); // no category = an older strength session
 });
 
 test("formatting", () => {
