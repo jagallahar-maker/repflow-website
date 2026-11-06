@@ -4,6 +4,7 @@ import CoachSharedMediaSection from "@/components/CoachSharedMediaSection";
 import CoachMessagesPanel from "@/components/CoachMessagesPanel";
 import CheckinDaySelect from "@/components/CheckinDaySelect";
 import ProgrammingPanel from "@/components/library/ProgrammingPanel";
+import WeeklySummaryPanel from "@/components/WeeklySummaryPanel";
 import {
   MIN_MANAGED_BUILD,
   getAssignment,
@@ -432,6 +433,23 @@ export default async function ClientDetailPage({ params, searchParams }: ClientP
           />
         ) : (
           <NotSharedSection title="Nutrition & Strategy" what="food log and Strategy targets" />
+        )}
+
+        {/* ── AI weekly summary (AI summaries switch on) ──────────────── */}
+        {sharing.aiSummaries && (
+          <section className={`mt-6 ${CARD}`}>
+            <SectionTitle title="Weekly summary" note="AI draft for you" />
+            <WeeklySummaryPanel
+              clientId={clientId}
+              clientName={displayName}
+              shares={[
+                ...(sharing.workouts ? ["workouts"] : []),
+                ...(sharing.body ? ["body"] : []),
+                ...(sharing.nutrition ? ["nutrition"] : []),
+                ...(sharing.checkins ? ["check-ins"] : []),
+              ]}
+            />
+          </section>
         )}
 
         {/* ── Programming: assign from the library (Phase 5b) ─────────── */}

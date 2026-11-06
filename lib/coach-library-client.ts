@@ -56,3 +56,20 @@ export async function coachDraftsLeft(): Promise<{ left: number | null; cap: num
     cap: d.caps?.coachDraft ?? null,
   };
 }
+
+const _aiCoachSummary = httpsCallable(functions, "aiCoachSummary", { timeout: 120000 });
+
+/** aiCoachSummary (functions/src/ai/coachSummary.ts): a draft to review. */
+export async function aiCoachSummary(clientId: string): Promise<{
+  text: string;
+  remaining: number;
+  included: string[];
+}> {
+  return (await _aiCoachSummary({ clientId })).data as never;
+}
+
+/** Fills the client page's message composer (CoachMessagesPanel). */
+export const COMPOSE_EVENT = "repflow:compose";
+export function prefillMessage(text: string) {
+  window.dispatchEvent(new CustomEvent(COMPOSE_EVENT, { detail: text }));
+}

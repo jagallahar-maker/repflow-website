@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { COMPOSE_EVENT } from "@/lib/coach-library-client";
 import type { MessageDoc } from "@/lib/coach-client-data.ts";
 import { callableError, markThreadRead, sendCoachMessage } from "@/lib/coach-messages-client";
 
@@ -26,6 +27,19 @@ export default function CoachMessagesPanel({
 }) {
   const router = useRouter();
   const [text, setText] = useState("");
+  const box = useRef<HTMLTextAreaElement>(null);
+
+  // "Send as message" from the AI summary: fill the composer (the coach
+  // still presses Send).
+  useEffect(() => {
+    const fill = (e: Event) => {
+      setText(String((e as CustomEvent).detail ?? "").slice(0, 2000));
+      box.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      box.current?.focus();
+    };
+    window.addEventListener(COMPOSE_EVENT, fill);
+    return () => window.removeEventListener(COMPOSE_EVENT, fill);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,10 +101,11 @@ export default function CoachMessagesPanel({
         )}
         <div className="flex gap-2">
           <textarea
+            ref={box}
             value={text}
             onChange={(e) => setText(e.target.value)}
             maxLength={2000}
-            rows={2}
+            rows={text.length > 200 ? 8 : 2}
             placeholder={`Message ${clientName}`}
             className="flex-1 bg-black border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-zinc-600"
           />
