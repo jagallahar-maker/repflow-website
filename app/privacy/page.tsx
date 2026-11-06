@@ -313,7 +313,21 @@ export default function PrivacyPage() {
               Google (Firebase) for storage and authentication. Mapbox for
               rendering maps of your cardio routes — your route data is
               sent to Mapbox tile servers solely to render the visible map
-              area; Mapbox does not retain it.
+              area; Mapbox does not retain it.{" "}
+              <strong className="text-white">Anthropic</strong> (the Claude
+              AI model) for Ask Repflow, only if you turn it on (ages 18
+              and up): when you ask a question, we send your question, the
+              conversation so far, and a short summary of your own Repflow
+              data (age, sex, height, experience, goals, equipment,
+              injuries you entered, recent workouts and personal records,
+              weight trend, Strategy targets and logged intake, program,
+              goals, and Insights). We never send your name, email,
+              username, photos, videos, posts, friends, or Apple Health
+              data. Anthropic processes this to produce the answer and
+              doesn&apos;t use it to train its models; it keeps it only for
+              a limited time under its commercial terms. TODO(legal):
+              confirm Anthropic&apos;s retention period and data processing
+              terms.
             </li>
             <li>
               <strong className="text-white">For legal reasons:</strong> if
@@ -424,6 +438,15 @@ export default function PrivacyPage() {
           <p>
             Crash logs and diagnostic data collected by Firebase
             Crashlytics are retained for up to 90 days.
+          </p>
+          <p>
+            Ask Repflow conversations are stored in your account so you can
+            read them again. You can delete one or all of them in the app,
+            and a conversation is deleted automatically 12 months after its
+            last message. Erase all data and account deletion remove them.
+            Usage counts (how many questions you asked this month) are kept
+            to apply monthly limits, and answers that our safety checks
+            flag, or that you report, are kept for up to 90 days for review.
           </p>
         </Section>
 

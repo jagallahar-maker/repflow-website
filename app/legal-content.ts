@@ -14,7 +14,7 @@ export type LegalDoc = {
 export const termsOfService: LegalDoc = {
   "title": "Terms of Service",
   "version": 1,
-  "updated": "November 1, 2026",
+  "updated": "November 5, 2026",
   "draftNotice": "DRAFT pending legal review. These terms are a plain-language draft and have not yet been reviewed by a lawyer.",
   "intro": [
     "These Terms of Service (\"Terms\") are an agreement between you and Repflow (\"Repflow\", \"we\", \"us\") about your use of the Repflow app, the Repflow coach website, and related services (together, the \"Service\"). By creating an account or using the Service, you agree to these Terms and to our Community Guidelines and Privacy Policy. If you don't agree, don't use the Service."
@@ -67,7 +67,8 @@ export const termsOfService: LegalDoc = {
       "heading": "7. Health and fitness information",
       "paragraphs": [
         "Repflow gives general fitness and nutrition information and tracking tools. It is not medical advice and doesn't replace a doctor, dietitian, or other professional. Talk to a qualified professional before starting a new exercise or nutrition program, and stop and get help if you feel pain, dizziness, or shortness of breath. You use the Service at your own risk.",
-        "Calorie, macro and weight-change targets (Diet → Strategy) are estimates calculated from formulas and the data you log. They are meant for healthy adults and have built-in limits (a minimum daily calorie target and a maximum rate of weight loss), but they are not medical advice or a treatment plan. Talk to a doctor or registered dietitian before following them if you are under 18, pregnant or breastfeeding, have a medical condition (for example diabetes or kidney disease) or take medication affected by diet, or have a history of disordered eating. TODO(legal): review the nutrition-target disclaimer."
+        "Calorie, macro and weight-change targets (Diet → Strategy) are estimates calculated from formulas and the data you log. They are meant for healthy adults and have built-in limits (a minimum daily calorie target and a maximum rate of weight loss), but they are not medical advice or a treatment plan. Talk to a doctor or registered dietitian before following them if you are under 18, pregnant or breastfeeding, have a medical condition (for example diabetes or kidney disease) or take medication affected by diet, or have a history of disordered eating. TODO(legal): review the nutrition-target disclaimer.",
+        "Ask Repflow (AI answers, for ages 18 and up) uses an AI model from Anthropic to answer questions about training, nutrition and your own logged data. Its answers are generated automatically, can be wrong or incomplete, and are general information, not medical, nutrition or injury advice. Check anything important with a qualified professional, and never use it in an emergency. You turn it on yourself, can turn it off at any time in Settings, and there are monthly limits on how much you can use it. Don't use it to create harmful content, and don't rely on it to change a diet below the safety limits Repflow sets. TODO(legal): review the AI terms."
       ]
     },
     {
