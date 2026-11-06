@@ -693,19 +693,19 @@ export default async function ClientDetailPage({ params, searchParams }: ClientP
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <section className={CARD}>
             <SectionTitle title="Activity" note="last 90 days" />
-            <ActivityHeatmap weeks={buildActivityHeatmap(chartSessions, 91)} />
+            <ActivityHeatmap weeks={buildActivityHeatmap(chartSessions, 91, today)} />
           </section>
           <section className={CARD}>
             <SectionTitle title="Workouts per week" note="12 weeks" />
-            <WeeklyWorkoutCountChart data={buildWeeklyCountSeries(chartSessions, 12)} />
+            <WeeklyWorkoutCountChart data={buildWeeklyCountSeries(chartSessions, 12, today)} />
           </section>
           <section className={CARD}>
             <SectionTitle title="Strength volume" note="lb per week, 12 weeks" />
-            <WeeklyVolumeChart data={buildWeeklyVolumeSeries(chartSessions, 12)} />
+            <WeeklyVolumeChart data={buildWeeklyVolumeSeries(chartSessions, 12, today)} />
           </section>
           <section className={CARD}>
             <SectionTitle title="Cardio distance" note="mi per week, 12 weeks" />
-            <WeeklyCardioChart data={buildWeeklyCardioSeries(chartSessions, 12)} />
+            <WeeklyCardioChart data={buildWeeklyCardioSeries(chartSessions, 12, today)} />
           </section>
         </div>
         </>

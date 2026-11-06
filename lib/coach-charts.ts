@@ -1,5 +1,8 @@
 import type { ActivitySessionDoc, BodyweightLogDoc } from "@/lib/coach-data";
 import { parseDate } from "@/lib/coach-data";
+import {
+  dayFromStored, dayKey, dayParts, formatDayShort, mondayOf, todayDay, weekdayIndex, type DayNum,
+} from "@/lib/trend.ts";
 
 // =============================================================================
 // Types
@@ -71,40 +74,18 @@ export type ExerciseOption = {
 // Date helpers
 // =============================================================================
 
-function startOfMondayWeek(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diffToMonday);
-  return d;
-}
-
-function startOfSundayWeek(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  d.setDate(d.getDate() - day);
-  return d;
+/** Same rule as the app (CardioMath.counts): cardio, sport, mobility, accessory. */
+const CARDIO_CATEGORIES = new Set(["cardio", "sport", "mobility", "accessory"]);
+function isCardio(category: string | undefined | null): boolean {
+  return CARDIO_CATEGORIES.has(category ?? "");
 }
 
 function isoDate(d: Date): string {
   return d.toISOString();
 }
 
-function localDateKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = `${d.getMonth() + 1}`.padStart(2, "0");
-  const day = `${d.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 function shortLabel(d: Date): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-function monthOnlyLabel(d: Date): string {
-  return d.toLocaleDateString(undefined, { month: "short" });
 }
 
 const METERS_PER_MILE = 1609.344;
@@ -175,37 +156,40 @@ export function buildWeightSeries(
 // Weekly volume (strength only)
 // =============================================================================
 
+// Weeks and days below are on the client's calendar: `today` is
+// todayDay(profile.timeZone) (their saved time zone, else
+// COACH_CLIENT_TIME_ZONE), and each session's day is the date part of its
+// stored local start time (dayFromStored), the same Mon–Sun weeks as the
+// app's CalendarDays.
+
+/** The client's calendar day of a session. */
+function sessionDay(session: ActivitySessionDoc): DayNum | null {
+  return dayFromStored(session.startTime ?? session.createdAt);
+}
+
+/** [weeks] Monday day numbers ending with this week. */
+function weekStarts(today: DayNum, weeks: number): DayNum[] {
+  const monday = mondayOf(today);
+  return Array.from({ length: weeks }, (_, i) => monday - 7 * (weeks - 1 - i));
+}
+
 export function buildWeeklyVolumeSeries(
   sessions: ActivitySessionDoc[],
   weeks: number = 12,
+  today: DayNum = todayDay(),
 ): WeeklyVolumePoint[] {
-  const now = new Date();
-  const currentWeekStart = startOfMondayWeek(now);
-  const earliestWeekStart = new Date(currentWeekStart);
-  earliestWeekStart.setDate(earliestWeekStart.getDate() - 7 * (weeks - 1));
-
-  const buckets = new Map<string, WeeklyVolumePoint>();
-  for (let i = 0; i < weeks; i++) {
-    const ws = new Date(earliestWeekStart);
-    ws.setDate(ws.getDate() + i * 7);
-    const key = isoDate(ws);
-    buckets.set(key, {
-      weekStart: key,
-      weekLabel: shortLabel(ws),
-      volume: 0,
-      workoutCount: 0,
-    });
+  const starts = weekStarts(today, weeks);
+  const buckets = new Map<DayNum, WeeklyVolumePoint>();
+  for (const ws of starts) {
+    buckets.set(ws, { weekStart: dayKey(ws), weekLabel: formatDayShort(ws), volume: 0, workoutCount: 0 });
   }
 
   for (const session of sessions) {
     if (!session.completed) continue;
     if (session.category !== "strength") continue;
-    const date = parseDate(session.startTime ?? session.createdAt);
-    if (!date) continue;
-    if (date < earliestWeekStart) continue;
-    const ws = startOfMondayWeek(date);
-    const key = isoDate(ws);
-    const bucket = buckets.get(key);
+    const day = sessionDay(session);
+    if (day == null || day > today) continue;
+    const bucket = buckets.get(mondayOf(day));
     if (!bucket) continue;
     bucket.volume += session.totalVolume ?? 0;
     bucket.workoutCount += 1;
@@ -221,38 +205,22 @@ export function buildWeeklyVolumeSeries(
 export function buildWeeklyCountSeries(
   sessions: ActivitySessionDoc[],
   weeks: number = 12,
+  today: DayNum = todayDay(),
 ): WeeklyCountPoint[] {
-  const now = new Date();
-  const currentWeekStart = startOfMondayWeek(now);
-  const earliestWeekStart = new Date(currentWeekStart);
-  earliestWeekStart.setDate(earliestWeekStart.getDate() - 7 * (weeks - 1));
-
-  const buckets = new Map<string, WeeklyCountPoint>();
-  for (let i = 0; i < weeks; i++) {
-    const ws = new Date(earliestWeekStart);
-    ws.setDate(ws.getDate() + i * 7);
-    const key = isoDate(ws);
-    buckets.set(key, {
-      weekStart: key,
-      weekLabel: shortLabel(ws),
-      strength: 0,
-      cardio: 0,
-      total: 0,
-    });
+  const buckets = new Map<DayNum, WeeklyCountPoint>();
+  for (const ws of weekStarts(today, weeks)) {
+    buckets.set(ws, { weekStart: dayKey(ws), weekLabel: formatDayShort(ws), strength: 0, cardio: 0, total: 0 });
   }
 
   for (const session of sessions) {
     if (!session.completed) continue;
-    const date = parseDate(session.startTime ?? session.createdAt);
-    if (!date) continue;
-    if (date < earliestWeekStart) continue;
-    const ws = startOfMondayWeek(date);
-    const key = isoDate(ws);
-    const bucket = buckets.get(key);
+    const day = sessionDay(session);
+    if (day == null || day > today) continue;
+    const bucket = buckets.get(mondayOf(day));
     if (!bucket) continue;
     if (session.category === "strength") {
       bucket.strength += 1;
-    } else if (session.category === "cardio") {
+    } else if (isCardio(session.category)) {
       bucket.cardio += 1;
     }
     bucket.total = bucket.strength + bucket.cardio;
@@ -268,20 +236,13 @@ export function buildWeeklyCountSeries(
 export function buildWeeklyCardioSeries(
   sessions: ActivitySessionDoc[],
   weeks: number = 12,
+  today: DayNum = todayDay(),
 ): WeeklyCardioPoint[] {
-  const now = new Date();
-  const currentWeekStart = startOfMondayWeek(now);
-  const earliestWeekStart = new Date(currentWeekStart);
-  earliestWeekStart.setDate(earliestWeekStart.getDate() - 7 * (weeks - 1));
-
-  const buckets = new Map<string, WeeklyCardioPoint>();
-  for (let i = 0; i < weeks; i++) {
-    const ws = new Date(earliestWeekStart);
-    ws.setDate(ws.getDate() + i * 7);
-    const key = isoDate(ws);
-    buckets.set(key, {
-      weekStart: key,
-      weekLabel: shortLabel(ws),
+  const buckets = new Map<DayNum, WeeklyCardioPoint>();
+  for (const ws of weekStarts(today, weeks)) {
+    buckets.set(ws, {
+      weekStart: dayKey(ws),
+      weekLabel: formatDayShort(ws),
       miles: 0,
       sessions: 0,
       durationMinutes: 0,
@@ -290,13 +251,10 @@ export function buildWeeklyCardioSeries(
 
   for (const session of sessions) {
     if (!session.completed) continue;
-    if (session.category !== "cardio") continue;
-    const date = parseDate(session.startTime ?? session.createdAt);
-    if (!date) continue;
-    if (date < earliestWeekStart) continue;
-    const ws = startOfMondayWeek(date);
-    const key = isoDate(ws);
-    const bucket = buckets.get(key);
+    if (!isCardio(session.category)) continue;
+    const day = sessionDay(session);
+    if (day == null || day > today) continue;
+    const bucket = buckets.get(mondayOf(day));
     if (!bucket) continue;
     bucket.sessions += 1;
     if (typeof session.distanceMeters === "number") {
@@ -322,44 +280,34 @@ export function buildWeeklyCardioSeries(
 export function buildActivityHeatmap(
   sessions: ActivitySessionDoc[],
   days: number = 91,
+  today: DayNum = todayDay(),
 ): HeatmapWeek[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const earliest = today - (days - 1);
+  // Columns run Sunday → Saturday (weekdayIndex: Monday 0 … Sunday 6).
+  const gridStart = earliest - ((weekdayIndex(earliest) + 1) % 7);
 
-  const earliest = new Date(today);
-  earliest.setDate(earliest.getDate() - (days - 1));
-  const gridStart = startOfSundayWeek(earliest);
-
-  const counts = new Map<string, { strength: number; cardio: number }>();
+  const counts = new Map<DayNum, { strength: number; cardio: number }>();
   for (const session of sessions) {
     if (!session.completed) continue;
-    const date = parseDate(session.startTime ?? session.createdAt);
-    if (!date) continue;
-    if (date < gridStart) continue;
-    if (date > today) continue;
-    const key = localDateKey(date);
-    const existing = counts.get(key) ?? { strength: 0, cardio: 0 };
+    const day = sessionDay(session);
+    if (day == null || day < gridStart || day > today) continue;
+    const existing = counts.get(day) ?? { strength: 0, cardio: 0 };
     if (session.category === "strength") existing.strength += 1;
-    else if (session.category === "cardio") existing.cardio += 1;
-    counts.set(key, existing);
+    else if (isCardio(session.category)) existing.cardio += 1;
+    counts.set(day, existing);
   }
 
   const weeks: HeatmapWeek[] = [];
   let lastMonth: number | null = null;
 
-  const cursor = new Date(gridStart);
-  while (cursor <= today) {
+  for (let cursor = gridStart; cursor <= today; cursor += 7) {
     const cells: HeatmapCell[] = [];
     for (let i = 0; i < 7; i++) {
-      const cellDate = new Date(cursor);
-      cellDate.setDate(cellDate.getDate() + i);
-
-      const outOfRange = cellDate < earliest || cellDate > today;
-      const key = localDateKey(cellDate);
-      const entry = outOfRange ? undefined : counts.get(key);
-
+      const cellDay = cursor + i;
+      const outOfRange = cellDay < earliest || cellDay > today;
+      const entry = outOfRange ? undefined : counts.get(cellDay);
       cells.push({
-        date: key,
+        date: dayKey(cellDay),
         count: entry ? entry.strength + entry.cardio : 0,
         strength: entry?.strength ?? 0,
         cardio: entry?.cardio ?? 0,
@@ -368,20 +316,14 @@ export function buildActivityHeatmap(
       });
     }
 
-    const colMonth = cursor.getMonth();
+    const colMonth = dayParts(cursor).month;
     let monthLabel: string | null = null;
     if (lastMonth === null || colMonth !== lastMonth) {
-      monthLabel = monthOnlyLabel(cursor);
+      monthLabel = formatDayShort(cursor).split(" ")[0];
       lastMonth = colMonth;
     }
 
-    weeks.push({
-      weekStart: isoDate(cursor),
-      cells,
-      monthLabel,
-    });
-
-    cursor.setDate(cursor.getDate() + 7);
+    weeks.push({ weekStart: dayKey(cursor), cells, monthLabel });
   }
 
   return weeks;
