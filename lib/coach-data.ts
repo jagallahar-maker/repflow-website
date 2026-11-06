@@ -32,6 +32,8 @@ export type UserProfileDoc = {
   name?: string;
   /** IANA time zone saved by the app (build 20+), e.g. "America/Chicago". */
   timeZone?: string;
+  /** The app build (build 21+ saves it); coach programs need >= 21. */
+  appBuild?: number;
   username?: string;
   displayName?: string;
   email?: string;
@@ -156,6 +158,7 @@ const PROFILE_FIELDS = [
   "coachStatus",
   "coachDisplayName",
   "timeZone",
+  "appBuild",
 ];
 
 export async function getUserProfile(

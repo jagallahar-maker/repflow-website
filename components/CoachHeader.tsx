@@ -2,7 +2,7 @@
 
 import { signOut } from "firebase/auth";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase-client";
 
 type CoachHeaderProps = {
@@ -15,6 +15,7 @@ export default function CoachHeader({
   coachDisplayName,
 }: CoachHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
 
   async function handleSignOut() {
     await signOut(auth);
@@ -38,6 +39,25 @@ export default function CoachHeader({
             Coach Dashboard
           </span>
         </Link>
+
+        <nav className="flex items-center gap-1 text-sm">
+          {[
+            ["/clients", "Clients"],
+            ["/library", "Library"],
+          ].map(([href, label]) => (
+            <Link
+              key={href}
+              href={href}
+              className={`px-3 py-1.5 rounded-full transition ${
+                pathname?.startsWith(href)
+                  ? "text-white bg-zinc-900"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
 
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex flex-col items-end leading-tight">

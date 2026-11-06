@@ -3,6 +3,13 @@ import CoachNotesSection from "@/components/CoachNotesSection";
 import CoachSharedMediaSection from "@/components/CoachSharedMediaSection";
 import CoachMessagesPanel from "@/components/CoachMessagesPanel";
 import CheckinDaySelect from "@/components/CheckinDaySelect";
+import ProgrammingPanel from "@/components/library/ProgrammingPanel";
+import {
+  MIN_MANAGED_BUILD,
+  getAssignment,
+  listCoachPrograms,
+  listCoachRoutines,
+} from "@/lib/coach-library-data";
 import {
   ADHERENCE_LABELS,
   DEFAULT_WEEKDAY,
@@ -109,12 +116,16 @@ export default async function ClientDetailPage({ params, searchParams }: ClientP
     notFound();
   }
 
-  const [summary, profile, sharing, coachNotes] = await Promise.all([
-    getClientSummary(clientId, session.coachId),
-    getUserProfile(clientId),
-    getCoachSharing(clientId),
-    getCoachNotes(session.coachId, clientId),
-  ]);
+  const [summary, profile, sharing, coachNotes, assignment, libPrograms, libRoutines] =
+    await Promise.all([
+      getClientSummary(clientId, session.coachId),
+      getUserProfile(clientId),
+      getCoachSharing(clientId),
+      getCoachNotes(session.coachId, clientId),
+      getAssignment(session.coachId, clientId),
+      listCoachPrograms(session.coachId),
+      listCoachRoutines(session.coachId),
+    ]);
   if (!summary) notFound();
   // The client's own calendar day (their saved time zone when present).
   const today = todayDay(profile?.timeZone);
@@ -422,6 +433,40 @@ export default async function ClientDetailPage({ params, searchParams }: ClientP
         ) : (
           <NotSharedSection title="Nutrition & Strategy" what="food log and Strategy targets" />
         )}
+
+        {/* ── Programming: assign from the library (Phase 5b) ─────────── */}
+        <section className={`mt-6 ${CARD}`}>
+          <SectionTitle title="Programming" note="From your library" />
+          <ProgrammingPanel
+            clientId={clientId}
+            clientName={displayName}
+            blocked={
+              !sharing.workouts
+                ? `${displayName} has Workouts sharing off. They can turn it on in Settings → Coach.`
+                : (profile?.appBuild ?? 0) < MIN_MANAGED_BUILD
+                  ? `${displayName} needs to update Repflow to receive programs.`
+                  : null
+            }
+            programs={libPrograms.map((p) => ({
+              id: p.id,
+              name: p.name,
+              version: p.version,
+              detail: `${p.durationWeeks} weeks, ${p.schedule.filter((d) => d.routineIds.length > 0).length} days a week`,
+            }))}
+            routines={libRoutines.map((r) => ({
+              id: r.id,
+              name: r.name,
+              version: r.version,
+              detail: `${r.exercises.length} exercises`,
+            }))}
+            assignedProgram={
+              assignment.program
+                ? { id: assignment.program.programId, version: assignment.program.version }
+                : null
+            }
+            assignedRoutines={assignment.routines.map((r) => ({ id: r.routineId, version: r.version }))}
+          />
+        </section>
 
         {/* ── Program adherence ──────────────────────────────────────── */}
         {sharing.workouts && (
