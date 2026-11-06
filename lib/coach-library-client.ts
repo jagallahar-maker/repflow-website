@@ -30,3 +30,29 @@ export const unassignFromClient = call<{ ok: boolean }>("unassignFromClient");
 
 /** After a library save: who didn't get the update, and why. */
 export type SaveResult = { id: string; version: number; updated?: number; skipped?: string[] };
+
+const _aiBuildCoachDraft = httpsCallable(functions, "aiBuildCoachDraft", { timeout: 300000 });
+const _aiStatus = httpsCallable(functions, "aiStatus");
+
+/** aiBuildCoachDraft (functions/src/ai/coachBuild.ts): a plan to edit. */
+export async function aiBuildCoachDraft(data: unknown): Promise<{
+  plan: import("@/lib/ai-draft").AiPlanJson;
+  remaining: number;
+  usedClientData: boolean;
+}> {
+  return (await _aiBuildCoachDraft(data)).data as never;
+}
+
+/** Coach AI drafts left this month (null if AI is off or unknown). */
+export async function coachDraftsLeft(): Promise<{ left: number | null; cap: number | null; enabled: boolean }> {
+  const d = (await _aiStatus()).data as {
+    enabled?: boolean;
+    remaining?: { coachDraft?: number };
+    caps?: { coachDraft?: number };
+  };
+  return {
+    enabled: d.enabled !== false,
+    left: d.remaining?.coachDraft ?? null,
+    cap: d.caps?.coachDraft ?? null,
+  };
+}

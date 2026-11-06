@@ -3,8 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { errorText, saveCoachProgram, type SaveResult } from "@/lib/coach-library-client";
+import {
+  errorText,
+  saveCoachProgram,
+  saveCoachRoutine,
+  type SaveResult,
+} from "@/lib/coach-library-client";
 import { LIMITS, WEEKDAYS, validateProgram } from "@/lib/routine-format";
+import { routineDraftOf, type AiRoutineDraft } from "@/lib/ai-draft";
+import type { DraftClient } from "@/lib/coach-library-data";
+import AiDraftDialog from "./AiDraftDialog";
+import RoutineBuilder from "./RoutineBuilder";
+
+/** Draft routines from Build with AI live here ("ai:A") until Save. */
+const DRAFT = "ai:";
 
 export type ProgramDraft = {
   name: string;
@@ -22,17 +34,38 @@ const dayName = (d: string) => d[0].toUpperCase() + d.slice(1);
  * Coach program builder (draft), like the app's: name, 1–16 weeks, and
  * for each weekday rest, one routine, or two alternating (A one time, B
  * the next, after whichever was completed last). Every week repeats.
+ *
+ * "Build with AI" fills the schedule with AI draft routines that exist
+ * only here (edit each one, with its reasons) until Save, which saves
+ * the used ones to the library and then the program. Never assigned.
  */
 export default function ProgramBuilder({
   id,
   initial,
-  routines,
+  routines: library,
+  clients,
 }: {
   id: string | null;
   initial: ProgramDraft;
   routines: { id: string; name: string; summary: string }[];
+  clients: DraftClient[];
 }) {
   const router = useRouter();
+  const [drafts, setDrafts] = useState<Record<string, AiRoutineDraft>>({});
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const routines = useMemo(
+    () => [
+      ...library,
+      ...Object.entries(drafts).map(([did, d]) => ({
+        id: did,
+        name: `${d.name} (AI draft)`,
+        summary: `${d.category} · ${d.exercises.length} exercises · saved with the program`,
+      })),
+    ],
+    [library, drafts],
+  );
   const [name, setName] = useState(initial.name);
   const [notes, setNotes] = useState(initial.notes);
   const [weeks, setWeeks] = useState(initial.durationWeeks);
@@ -86,7 +119,26 @@ export default function ProgramBuilder({
     if (errors.length) return;
     setSaving(true);
     try {
-      const res = (await saveCoachProgram({ id, program: input })) as SaveResult;
+      // AI drafts on the schedule become library routines first; each is
+      // swapped for its new id as soon as it's saved (a retry won't
+      // duplicate it). Drafts not on the schedule are dropped.
+      let schedule = input.schedule;
+      const used = [...new Set(schedule.flatMap((s) => s.routineIds))].filter((r) => r.startsWith(DRAFT));
+      for (const did of used) {
+        const d = drafts[did];
+        const saved = (await saveCoachRoutine({
+          id: null,
+          routine: { name: d.name, category: d.category, notes: d.notes, exercises: d.exercises },
+        })) as SaveResult;
+        schedule = schedule.map((s) => ({ ...s, routineIds: s.routineIds.map((r) => (r === did ? saved.id : r)) }));
+        setDays(Object.fromEntries(schedule.map((s) => [s.weekday, s.routineIds])));
+        setDrafts((ds) => {
+          const next = { ...ds };
+          delete next[did];
+          return next;
+        });
+      }
+      const res = (await saveCoachProgram({ id, program: { ...input, schedule } })) as SaveResult;
       // Clients who couldn't get the update (old app, sharing off).
       if (res.skipped?.length) window.alert(["Saved. Not updated:", ...res.skipped].join("\n"));
       router.push("/library");
@@ -105,14 +157,34 @@ export default function ProgramBuilder({
         <Link href="/library" className="text-sm text-zinc-400 hover:text-white">
           ← Library
         </Link>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="rounded-full bg-[#9EFD06] text-black font-semibold text-sm px-5 py-2 disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Save program"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setAiOpen(true)}
+            disabled={saving}
+            className="rounded-full border border-[#9EFD06]/60 text-[#9EFD06] font-semibold text-sm px-4 py-2"
+          >
+            ✨ Build with AI
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-full bg-[#9EFD06] text-black font-semibold text-sm px-5 py-2 disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save program"}
+          </button>
+        </div>
       </div>
+
+      {aiNote && (
+        <div className="rounded-2xl border border-[#9EFD06]/30 bg-[#9EFD06]/5 p-4 text-sm">
+          <div className="text-[#9EFD06] text-xs font-semibold mb-1">✨ AI draft</div>
+          <p className="text-zinc-200 whitespace-pre-line">{aiNote}</p>
+          <p className="text-xs text-zinc-500 mt-2">
+            Not saved yet. Open each AI routine (Edit on its day) to check the exercises and the reason for
+            each, then Save: the routines go into your library with the program.
+          </p>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
         <label className="block">
@@ -221,6 +293,14 @@ export default function ProgramBuilder({
                         {byId.has(rid) && (
                           <span className="block text-xs text-zinc-500 mt-1">{byId.get(rid)!.summary}</span>
                         )}
+                        {drafts[rid] && (
+                          <button
+                            onClick={() => setEditing(rid)}
+                            className="mt-1 text-xs text-[#9EFD06] hover:underline"
+                          >
+                            Edit AI routine
+                          </button>
+                        )}
                       </label>
                     ))}
                   </div>
@@ -234,6 +314,47 @@ export default function ProgramBuilder({
             );
           })}
         </ul>
+      )}
+
+      {aiOpen && (
+        <AiDraftDialog
+          mode="program"
+          clients={clients}
+          onClose={() => setAiOpen(false)}
+          onResult={(plan, note) => {
+            const hasDays = WEEKDAYS.some((d) => (days[d] ?? []).length > 0);
+            if (hasDays && !window.confirm("Replace this schedule with the AI draft?")) return;
+            const next: Record<string, AiRoutineDraft> = {};
+            for (const r of plan.routines) next[`${DRAFT}${r.key}`] = routineDraftOf(r);
+            setDrafts(next);
+            setName(plan.name);
+            setWeeks(plan.weeks);
+            setDays(Object.fromEntries(WEEKDAYS.map((d) => [
+              d,
+              (plan.schedule.find((s) => s.weekday === d)?.routineKeys ?? []).map((k) => `${DRAFT}${k}`),
+            ])));
+            setAiNote([note, plan.why].filter(Boolean).join("\n"));
+            setAiOpen(false);
+          }}
+        />
+      )}
+      {editing && drafts[editing] && (
+        <div className="fixed inset-0 z-50 bg-black/80 overflow-y-auto p-4 sm:p-8" role="dialog" aria-modal="true">
+          <div className="max-w-4xl mx-auto rounded-2xl border border-zinc-800 bg-black p-4 sm:p-6">
+            <h2 className="text-lg font-semibold mb-4">AI routine</h2>
+            <RoutineBuilder
+              id={null}
+              initial={drafts[editing]}
+              initialWhys={drafts[editing].whys}
+              initialNote={drafts[editing].why || null}
+              onCancel={() => setEditing(null)}
+              onDone={(d) => {
+                setDrafts((ds) => ({ ...ds, [editing]: d }));
+                setEditing(null);
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {(serverError || (triedSave && errors.length > 0)) && (

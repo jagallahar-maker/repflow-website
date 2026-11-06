@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import ExercisePicker, { EXERCISE_BY_ID, equipmentLabel, humanize } from "./ExercisePicker";
+import AiDraftDialog from "./AiDraftDialog";
+import { routineDraftOf, type AiRoutineDraft } from "@/lib/ai-draft";
+import type { DraftClient } from "@/lib/coach-library-data";
 import { errorText, saveCoachRoutine, type SaveResult } from "@/lib/coach-library-client";
 import {
   LIMITS,
@@ -64,15 +67,33 @@ function summary(r: EditorExercise): string {
  * Coach routine builder (draft): the app editor's unified format and
  * limits, checked live with the same validator the server runs
  * (lib/routine-format.ts = functions/src/coachLibraryFormat.ts).
+ *
+ * "Build with AI" (with [clients]) fills it from aiBuildCoachDraft and
+ * shows each exercise's reason; nothing is saved until Save. With
+ * [onDone] (an AI routine inside the program builder) Save becomes Done
+ * and hands the edited draft back instead of saving.
  */
 export default function RoutineBuilder({
   id,
   initial,
+  clients,
+  initialWhys = {},
+  initialNote = null,
+  onDone,
+  onCancel,
 }: {
   id: string | null;
   initial: RoutineDraft;
+  clients?: DraftClient[];
+  initialWhys?: Record<string, string>;
+  initialNote?: string | null;
+  onDone?: (draft: AiRoutineDraft) => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
+  const [whys, setWhys] = useState<Record<string, string>>(initialWhys);
+  const [aiNote, setAiNote] = useState<string | null>(initialNote);
+  const [aiOpen, setAiOpen] = useState(false);
   const [name, setName] = useState(initial.name);
   const [category, setCategory] = useState(initial.category);
   const [notes, setNotes] = useState(initial.notes);
@@ -96,11 +117,11 @@ export default function RoutineBuilder({
   );
 
   useEffect(() => {
-    if (!dirty || saving) return;
+    if (!dirty || saving || onDone) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty, saving]);
+  }, [dirty, saving, onDone]);
 
   function update(key: number, patch: Partial<EditorExercise>) {
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -119,6 +140,10 @@ export default function RoutineBuilder({
     setTriedSave(true);
     setServerError(null);
     if (errors.length) return;
+    if (onDone) {
+      onDone({ name, category, notes, exercises: rows.map(toEditor), whys, why: aiNote ?? "" });
+      return;
+    }
     setSaving(true);
     try {
       const res = (await saveCoachRoutine({
@@ -141,17 +166,43 @@ export default function RoutineBuilder({
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <Link href="/library" className="text-sm text-zinc-400 hover:text-white">
-          ← Library
-        </Link>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="rounded-full bg-[#9EFD06] text-black font-semibold text-sm px-5 py-2 disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Save routine"}
-        </button>
+        {onCancel ? (
+          <button onClick={onCancel} className="text-sm text-zinc-400 hover:text-white">
+            Cancel
+          </button>
+        ) : (
+          <Link href="/library" className="text-sm text-zinc-400 hover:text-white">
+            ← Library
+          </Link>
+        )}
+        <div className="flex gap-2">
+          {clients && (
+            <button
+              onClick={() => setAiOpen(true)}
+              className="rounded-full border border-[#9EFD06]/60 text-[#9EFD06] font-semibold text-sm px-4 py-2"
+            >
+              ✨ Build with AI
+            </button>
+          )}
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-full bg-[#9EFD06] text-black font-semibold text-sm px-5 py-2 disabled:opacity-50"
+          >
+            {onDone ? "Done" : saving ? "Saving…" : "Save routine"}
+          </button>
+        </div>
       </div>
+
+      {aiNote && (
+        <div className="rounded-2xl border border-[#9EFD06]/30 bg-[#9EFD06]/5 p-4 text-sm">
+          <div className="text-[#9EFD06] text-xs font-semibold mb-1">✨ AI draft</div>
+          <p className="text-zinc-200 whitespace-pre-line">{aiNote}</p>
+          <p className="text-xs text-zinc-500 mt-2">
+            Not saved yet. Check every exercise (the reason is under each one), edit anything, then save.
+          </p>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
         <label className="block">
@@ -223,6 +274,9 @@ export default function RoutineBuilder({
                     {i + 1}. {ex?.name ?? "Missing exercise"}
                   </div>
                   <div className="text-xs text-zinc-500 truncate">{summary(r)}</div>
+                  {whys[r.exerciseId] && (
+                    <div className="text-xs text-zinc-400 mt-1">✨ {whys[r.exerciseId]}</div>
+                  )}
                 </button>
                 <button onClick={() => setOpen(open === r.key ? null : r.key)} className="text-xs text-zinc-400 hover:text-white">
                   {open === r.key ? "Done" : "Edit"}
@@ -264,6 +318,25 @@ export default function RoutineBuilder({
         </div>
       )}
 
+      {aiOpen && clients && (
+        <AiDraftDialog
+          mode="routine"
+          clients={clients}
+          onClose={() => setAiOpen(false)}
+          onResult={(plan, note) => {
+            const r = plan.routines[0];
+            if (!r) return;
+            if (rows.length > 0 && !window.confirm("Replace the exercises here with the AI draft?")) return;
+            const d = routineDraftOf(r);
+            setName(d.name);
+            setCategory(ROUTINE_CATEGORIES.includes(d.category) ? d.category : "Custom");
+            setRows(d.exercises.map((e) => ({ ...e, key: nextKey++ })));
+            setWhys(d.whys);
+            setAiNote([note, plan.why, d.why].filter(Boolean).join("\n"));
+            setAiOpen(false);
+          }}
+        />
+      )}
       {picker?.kind === "add" && (
         <ExercisePicker
           title="Add exercises"

@@ -1,4 +1,7 @@
 import { adminDb } from "@/lib/firebase-admin";
+import { getCoachClients } from "@/lib/coach-data";
+import { verifyClientBelongsToCoach } from "@/lib/coach-session";
+import { getCoachSharing } from "@/lib/coach-sharing";
 import type {
   StoredProgram,
   StoredRoutine,
@@ -127,3 +130,33 @@ export async function getAssignment(
 
 /** The first build that can receive coach programs (coachAssign.ts). */
 export const MIN_MANAGED_BUILD = 21;
+
+/** An active client as the AI draft dialog lists them. */
+export type DraftClient = {
+  id: string;
+  name: string;
+  /** "AI summaries" switch (their data can go to the AI). */
+  aiSummaries: boolean;
+  /** Categories that switch shares (workouts, body, nutrition). */
+  shares: string[];
+};
+
+/** Active clients with their AI sharing (for Build with AI). */
+export async function listDraftClients(coachId: string): Promise<DraftClient[]> {
+  const clients = await getCoachClients(coachId);
+  const rows = await Promise.all(
+    clients.map(async (c): Promise<DraftClient | null> => {
+      if (!(await verifyClientBelongsToCoach(coachId, c.id))) return null;
+      const s = await getCoachSharing(c.id);
+      return {
+        id: c.id,
+        name: c.displayName || "Unnamed client",
+        aiSummaries: s.aiSummaries,
+        shares: ["workouts", "body", "nutrition"].filter((k) => s[k as "workouts" | "body" | "nutrition"]),
+      };
+    }),
+  );
+  return rows
+    .filter((r): r is DraftClient => r != null)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}

@@ -37,3 +37,22 @@ test("a saved routine opens and saves unchanged", () => {
     exercises: first.routine.exercises.map(editorExerciseOf) }, catalog);
   assert.deepEqual(again.routine, first.routine);
 });
+
+test("an AI plan opens in the builder and passes the same validation", async () => {
+  const { routineDraftOf } = await import("../lib/ai-draft.ts");
+  const d = routineDraftOf({
+    key: "A", name: "Upper A", category: "Upper", why: "Chest focus.",
+    exercises: [
+      { exerciseId: "barbell_bench_press", sets: 3, reps: 8, minSets: 3, maxSets: 4, minReps: 8,
+        maxReps: 10, restSeconds: 150, targetRir: { min: 1, max: 2, finalSetOnly: false },
+        progressionRule: "doubleProgression", why: "Bench stalled at 5s, so 8–10." },
+      { exerciseId: "plank", sets: 3, reps: 45, minSets: 3, maxSets: 3, targetSeconds: 45,
+        restSeconds: 60, why: "Core." },
+    ],
+  });
+  assert.equal(d.whys.barbell_bench_press, "Bench stalled at 5s, so 8–10.");
+  const { routine, errors } = validateRoutine(d, catalog);
+  assert.deepEqual(errors, []);
+  assert.equal(routine.exercises[0].progressionRule, "doubleProgression");
+  assert.equal(routine.exercises[1].targetSeconds, 45);
+});
