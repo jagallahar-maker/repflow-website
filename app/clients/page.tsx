@@ -1,6 +1,6 @@
 import CoachHeader from "@/components/CoachHeader";
 import InviteCodeCard from "@/components/InviteCodeCard";
-import { formatShortDate, getCoachClients } from "@/lib/coach-data";
+import { formatShortDate, getAuthEmails, getCoachClients } from "@/lib/coach-data";
 import { formatDay } from "@/lib/trend.ts";
 import {
   getClientOverview,
@@ -40,8 +40,9 @@ async function getRoster(coachId: string) {
       displayName: c.displayName || "Unnamed Client",
       endedAt: c.unlinkedAt ?? c.endedAt ?? c.updatedAt ?? null,
     }));
+  const emails = await getAuthEmails(active.map((c) => c.id));
   const rows = await Promise.all(
-    active.map((c) => getClientOverview(c.id, c)),
+    active.map((c) => getClientOverview(c.id, c, emails.get(c.id) ?? null)),
   );
   // Needs attention first (most urgent on top), then by most recent workout.
   rows.sort(

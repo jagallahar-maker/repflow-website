@@ -58,6 +58,7 @@ import {
   formatDuration,
   formatShortDate,
   formatWeight,
+  getAuthEmails,
   getBestDisplayName,
   getBestEmail,
   getClientSummary,
@@ -117,10 +118,11 @@ export default async function ClientDetailPage({ params, searchParams }: ClientP
     notFound();
   }
 
-  const [summary, profile, sharing, coachNotes, assignment, libPrograms, libRoutines] =
+  const [summary, profile, authEmails, sharing, coachNotes, assignment, libPrograms, libRoutines] =
     await Promise.all([
       getClientSummary(clientId, session.coachId),
       getUserProfile(clientId),
+      getAuthEmails([clientId]),
       getCoachSharing(clientId),
       getCoachNotes(session.coachId, clientId),
       getAssignment(session.coachId, clientId),
@@ -163,7 +165,7 @@ export default async function ClientDetailPage({ params, searchParams }: ClientP
   await markCoachViewed(session.coachId, clientId, profile?.timeZone);
 
   const displayName = getBestDisplayName(summary, profile);
-  const email = getBestEmail(summary, profile);
+  const email = getBestEmail(summary, authEmails.get(clientId));
 
   // ── Weight ──────────────────────────────────────────────────────────
   const points = weighInPoints(logs);

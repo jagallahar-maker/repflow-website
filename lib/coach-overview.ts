@@ -94,6 +94,8 @@ export function weighInPoints(logs: { logDate?: string; weight?: number }[]): We
 export async function getClientOverview(
   clientId: string,
   summary: ClientSummaryDoc & { coachLastViewedLocal?: string },
+  /** From getAuthEmails (one batch for the whole roster). */
+  authEmail: string | null,
 ): Promise<ClientOverview> {
   const [profile, sharing] = await Promise.all([
     getUserProfile(clientId),
@@ -229,7 +231,7 @@ export async function getClientOverview(
     sharing,
     foodLoggedDays,
     name: getBestDisplayName(summary, profile),
-    email: getBestEmail(summary, profile),
+    email: getBestEmail(summary, authEmail),
     lastWorkoutDay: last,
     daysSinceWorkout,
     workoutsThisWeek: thisWeek,

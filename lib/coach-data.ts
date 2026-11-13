@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase-admin";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
 // ---------- Types ----------
 
@@ -36,7 +36,6 @@ export type UserProfileDoc = {
   appBuild?: number;
   username?: string;
   displayName?: string;
-  email?: string;
   currentWeight?: number;
   goalWeight?: number;
   coachId?: string;
@@ -140,9 +139,10 @@ export async function getClientSummary(
 
 /**
  * Only these fields are read from users/{uid}: the rest of the profile
- * (phone hash, settings, safety flags…) never reaches the portal.
- * Read live, so name / email / goal weight are never the stale copies
- * made on the roster doc at link time.
+ * (settings, safety flags…) never reaches the portal. Read live, so name
+ * and goal weight are never the stale copies made on the roster doc at
+ * link time. No email: profiles don't keep one (other athletes can read
+ * them); it comes from Firebase Auth (getAuthEmails).
  */
 const PROFILE_FIELDS = [
   "name",
@@ -150,7 +150,6 @@ const PROFILE_FIELDS = [
   "displayName",
   "firstName",
   "lastName",
-  "email",
   "age",
   "currentWeight",
   "goalWeight",
@@ -247,11 +246,32 @@ export function getBestDisplayName(
   );
 }
 
+/**
+ * Sign-in emails from Firebase Auth, by uid. getUsers takes at most 100
+ * identifiers per call. Missing accounts (or a failed lookup) are simply
+ * absent: getBestEmail falls back to the roster copy.
+ */
+export async function getAuthEmails(uids: string[]): Promise<Map<string, string>> {
+  const emails = new Map<string, string>();
+  const unique = [...new Set(uids.filter(Boolean))];
+  for (let i = 0; i < unique.length; i += 100) {
+    const batch = unique.slice(i, i + 100);
+    try {
+      const { users } = await adminAuth.getUsers(batch.map((uid) => ({ uid })));
+      for (const u of users) if (u.email) emails.set(u.uid, u.email);
+    } catch (e) {
+      console.error("auth email lookup failed", e);
+    }
+  }
+  return emails;
+}
+
+/** The sign-in email, else the copy made on the roster doc at link time. */
 export function getBestEmail(
   summary: ClientSummaryDoc | null,
-  profile: UserProfileDoc | null,
+  authEmail: string | null | undefined,
 ) {
-  return profile?.email || summary?.email || "No email";
+  return authEmail || summary?.email || "No email";
 }
 
 // ---------- Date helpers ----------
