@@ -3707,6 +3707,34 @@ export const EXERCISE_CATALOG: CatalogExercise[] = [
     ]
   },
   {
+    "id": "incline_cable_overhead_tricep_extension",
+    "name": "Incline Cable Overhead Triceps Extension",
+    "muscle": "arms",
+    "subgroup": "triceps",
+    "equipment": "cable",
+    "tracking": "reps",
+    "aliases": [
+      "Incline Overhead Cable Extension",
+      "Incline Cable Triceps Extension"
+    ],
+    "instructions": [
+      "Set an incline bench at about 45–60° facing away from the cable stack, with the cable coming from behind and above your head.",
+      "Lie back on the pad and hold a strap or rope handle in both hands, elbows pointing up, hands behind your head in a deep stretch.",
+      "Keeping your elbows fixed, extend your forearms up and forward until your arms are straight.",
+      "Return slowly to the stretch."
+    ],
+    "cues": [
+      "Elbows point up and stay fixed",
+      "Deep stretch behind your head",
+      "Slow return"
+    ],
+    "mistakes": [
+      "Letting your elbows drift forward or flare",
+      "Cutting the stretch short",
+      "Lifting your back off the pad"
+    ]
+  },
+  {
     "id": "incline_dumbbell_curl",
     "name": "Incline Dumbbell Curl",
     "muscle": "arms",
@@ -3841,6 +3869,38 @@ export const EXERCISE_CATALOG: CatalogExercise[] = [
     "mistakes": [
       "Letting your elbows drift forward",
       "Going too heavy",
+      "Cutting the stretch short"
+    ]
+  },
+  {
+    "id": "incline_lat_drag",
+    "name": "Incline Lat Drag",
+    "muscle": "back",
+    "subgroup": "lats",
+    "secondary": [
+      "upperBack",
+      "rearDelts",
+      "biceps"
+    ],
+    "equipment": "cable",
+    "tracking": "reps",
+    "aliases": [
+      "Incline Cable Lat Drag"
+    ],
+    "instructions": [
+      "Set an incline bench in front of the cable stack and attach a strap or rope handle to the high pulley.",
+      "Sit facing the stack with your chest leaning into the pad and hold the handle with both hands, arms reaching up and forward toward the pulley.",
+      "Pull down and back in an arc, elbows tight to your sides, until your hands reach your waist and your elbows are behind your torso.",
+      "Return under control to a full stretch."
+    ],
+    "cues": [
+      "Chest stays on the pad",
+      "Elbows tight to your sides",
+      "Full stretch at the top"
+    ],
+    "mistakes": [
+      "Lifting your chest off the pad",
+      "Flaring your elbows out",
       "Cutting the stretch short"
     ]
   },
