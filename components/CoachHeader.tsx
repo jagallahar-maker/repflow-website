@@ -43,6 +43,7 @@ export default function CoachHeader({
         <nav className="flex items-center gap-1 text-sm">
           {[
             ["/clients", "Clients"],
+            ["/leads", "New clients"],
             ["/library", "Library"],
           ].map(([href, label]) => (
             <Link

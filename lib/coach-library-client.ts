@@ -39,6 +39,7 @@ export async function aiBuildCoachDraft(data: unknown): Promise<{
   plan: import("@/lib/ai-draft").AiPlanJson;
   remaining: number;
   usedClientData: boolean;
+  usedLeadData?: boolean;
 }> {
   return (await _aiBuildCoachDraft(data)).data as never;
 }

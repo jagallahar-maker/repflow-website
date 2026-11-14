@@ -1,5 +1,6 @@
 import CoachHeader from "@/components/CoachHeader";
 import InviteCodeCard from "@/components/InviteCodeCard";
+import { countNewLeads } from "@/lib/coach-leads-data";
 import { formatShortDate, getAuthEmails, getCoachClients } from "@/lib/coach-data";
 import { formatDay } from "@/lib/trend.ts";
 import {
@@ -63,7 +64,10 @@ export default async function ClientsPage({
   const { filter: rawFilter } = await searchParams;
   const filter: Filter =
     rawFilter === "attention" || rawFilter === "ontrack" ? rawFilter : "all";
-  const { rows, past } = await getRoster(session.coachId);
+  const [{ rows, past }, newLeads] = await Promise.all([
+    getRoster(session.coachId),
+    countNewLeads(session.coachId),
+  ]);
 
   const attentionCount = rows.filter((r) => r.needsAttention).length;
   const visible = rows.filter((r) =>
@@ -100,8 +104,23 @@ export default async function ClientsPage({
           <Stat label="Workouts this week" value={String(workoutsThisWeek)} />
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_18rem]">
           <InviteCodeCard inviteCode={session.inviteCode} />
+          <Link
+            href="/leads"
+            className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 hover:border-zinc-600 transition flex flex-col justify-center"
+          >
+            <span className="text-sm text-zinc-400">New clients</span>
+            <span className="text-lg font-semibold mt-0.5">
+              {newLeads > 0 ? (
+                <span className="text-[#9EFD06]">{newLeads} new form{newLeads === 1 ? "" : "s"}</span>
+              ) : (
+                "Intake forms"
+              )}{" "}
+              →
+            </span>
+            <span className="text-xs text-zinc-500 mt-0.5">Your intake form link and QR code</span>
+          </Link>
         </div>
 
         {/* Filters */}

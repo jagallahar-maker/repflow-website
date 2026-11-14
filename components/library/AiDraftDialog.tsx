@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { aiBuildCoachDraft, coachDraftsLeft, errorText } from "@/lib/coach-library-client";
 import type { AiPlanJson } from "@/lib/ai-draft";
 import type { DraftClient } from "@/lib/coach-library-data";
+import type { LeadBuildDefaults } from "@/lib/intake-format";
 import { WEEKDAYS } from "@/lib/routine-format";
+
+/** A new-client form to build for ("Build plan" on a lead, with AI allowed). */
+export type DraftLead = { id: string; firstName: string; defaults: LeadBuildDefaults };
 
 const GOALS: Record<string, string> = {
   strength: "Strength",
@@ -31,27 +35,31 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
  * Build with AI for the coach's routine / program builder
  * (aiBuildCoachDraft). The result opens in the builder as a draft;
  * nothing is saved or assigned here. A client's data is used only when
- * one is picked and their AI summaries switch is on.
+ * one is picked and their AI summaries switch is on. With [lead], the
+ * form starts from their intake answers and the server reads the rest
+ * (leadAiContext); no client is picked.
  */
 export default function AiDraftDialog({
   mode,
   clients,
+  lead = null,
   onResult,
   onClose,
 }: {
   mode: "routine" | "program";
   clients: DraftClient[];
+  lead?: DraftLead | null;
   onResult: (plan: AiPlanJson, note: string) => void;
   onClose: () => void;
 }) {
   const [clientId, setClientId] = useState("");
   const [weeks, setWeeks] = useState(8);
-  const [days, setDays] = useState<string[]>(["monday", "wednesday", "friday"]);
-  const [goal, setGoal] = useState("hypertrophy");
-  const [minutes, setMinutes] = useState(60);
+  const [days, setDays] = useState<string[]>(lead?.defaults.days ?? ["monday", "wednesday", "friday"]);
+  const [goal, setGoal] = useState(lead?.defaults.goal ?? "hypertrophy");
+  const [minutes, setMinutes] = useState(lead?.defaults.sessionMinutes ?? 60);
   const [focus, setFocus] = useState<string[]>([]);
-  const [equipment, setEquipment] = useState("full_gym");
-  const [injuries, setInjuries] = useState<string[]>([]);
+  const [equipment, setEquipment] = useState(lead?.defaults.equipment ?? "full_gym");
+  const [injuries, setInjuries] = useState<string[]>(lead?.defaults.injuries ?? []);
   const [avoid, setAvoid] = useState("");
   const [notes, setNotes] = useState("");
   const [left, setLeft] = useState<{ left: number | null; cap: number | null; enabled: boolean } | null>(null);
@@ -62,8 +70,11 @@ export default function AiDraftDialog({
     coachDraftsLeft().then(setLeft).catch(() => setLeft(null));
   }, []);
 
-  const client = clients.find((c) => c.id === clientId) ?? null;
-  const dataNote = !client
+  const client = lead ? null : clients.find((c) => c.id === clientId) ?? null;
+  const dataNote = lead
+    ? `Uses ${lead.firstName}'s intake answers: goals, experience, schedule, equipment, injuries and notes, plus an ` +
+      "age range. Never their name, contact details or health screening."
+    : !client
     ? "No client picked: the AI sees only what you type here."
     : client.aiSummaries
       ? `Uses what ${client.name} shares with you (${client.shares.join(", ") || "nothing"}): age range, ` +
@@ -83,13 +94,16 @@ export default function AiDraftDialog({
     try {
       const res = await aiBuildCoachDraft({
         mode, weeks, days, goal, sessionMinutes: minutes, focus, equipment,
-        injuries, avoid, notes, clientId: clientId || null,
+        injuries, avoid, notes,
+        ...(lead ? { leadId: lead.id, clientId: null } : { clientId: clientId || null }),
       });
       onResult(
         res.plan,
-        res.usedClientData && client
-          ? `Built with AI from ${client.name}'s shared data.`
-          : "Built with AI from your request only.",
+        lead && res.usedLeadData
+          ? `Built with AI from ${lead.firstName}'s intake form.`
+          : res.usedClientData && client
+            ? `Built with AI from ${client.name}'s shared data.`
+            : "Built with AI from your request only.",
       );
     } catch (err) {
       setError(errorText(err));
@@ -117,7 +131,8 @@ export default function AiDraftDialog({
           </div>
         ) : (
           <div className="overflow-y-auto px-5 pb-5">
-            <div className={section}>For client (optional)</div>
+            <div className={section}>{lead ? `For ${lead.firstName} (new client form)` : "For client (optional)"}</div>
+            {!lead && (
             <select
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
@@ -130,6 +145,7 @@ export default function AiDraftDialog({
                 </option>
               ))}
             </select>
+            )}
             <p className="text-xs text-zinc-500 mt-1.5">{dataNote}</p>
 
             {mode === "program" && (

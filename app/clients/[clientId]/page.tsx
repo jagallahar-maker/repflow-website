@@ -100,6 +100,8 @@ import {
 } from "@/lib/trend.ts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import LeadAnswers from "@/components/intake/LeadAnswers";
+import { getClientIntake } from "@/lib/coach-leads-data";
 
 type ClientPageProps = {
   params: Promise<{ clientId: string }>;
@@ -118,7 +120,7 @@ export default async function ClientDetailPage({ params, searchParams }: ClientP
     notFound();
   }
 
-  const [summary, profile, authEmails, sharing, coachNotes, assignment, libPrograms, libRoutines] =
+  const [summary, profile, authEmails, sharing, coachNotes, assignment, libPrograms, libRoutines, intakeForm] =
     await Promise.all([
       getClientSummary(clientId, session.coachId),
       getUserProfile(clientId),
@@ -128,6 +130,8 @@ export default async function ClientDetailPage({ params, searchParams }: ClientP
       getAssignment(session.coachId, clientId),
       listCoachPrograms(session.coachId),
       listCoachRoutines(session.coachId),
+      // The intake form they joined with (the coach's own record).
+      getClientIntake(session.coachId, clientId),
     ]);
   if (!summary) notFound();
   // The client's own calendar day (their saved time zone when present).
@@ -454,9 +458,31 @@ export default async function ClientDetailPage({ params, searchParams }: ClientP
           </section>
         )}
 
+        {/* ── Intake form they joined with (coach intake) ─────────────── */}
+        {intakeForm && (
+          <details className={`mt-6 ${CARD}`}>
+            <summary className="cursor-pointer select-none flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-lg font-semibold">Intake form</span>
+              <span className="text-xs text-zinc-500">
+                {intakeForm.clearanceRecommended ? "Medical clearance recommended · " : ""}
+                {intakeForm.submittedAt ? `sent ${new Date(intakeForm.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}
+              </span>
+            </summary>
+            <div className="mt-4">
+              <LeadAnswers answers={intakeForm.answers} clearanceRecommended={intakeForm.clearanceRecommended} showContact={false} />
+            </div>
+          </details>
+        )}
+
         {/* ── Programming: assign from the library (Phase 5b) ─────────── */}
         <section className={`mt-6 ${CARD}`}>
           <SectionTitle title="Programming" note="From your library" />
+          {summary.planAssignError && (
+            <p className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+              The plan from their intake form wasn&apos;t assigned when they joined: {summary.planAssignError} Assign
+              it below once that&apos;s fixed.
+            </p>
+          )}
           <ProgrammingPanel
             clientId={clientId}
             clientName={displayName}

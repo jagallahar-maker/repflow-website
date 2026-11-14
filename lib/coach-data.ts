@@ -21,6 +21,8 @@ export type ClientSummaryDoc = {
   checkinWeekday?: number;
   /** Kept by functions/src/coachMessages.ts. */
   unreadByCoach?: number;
+  /** Why an intake lead's plan wasn't assigned when they joined (cleared on assign). */
+  planAssignError?: string;
   lastMessageFrom?: string;
   createdAt?: string | { toDate?: () => Date } | null;
   updatedAt?: string | { toDate?: () => Date } | null;

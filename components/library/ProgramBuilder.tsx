@@ -12,9 +12,17 @@ import {
 import { LIMITS, WEEKDAYS, validateProgram, type EditorExercise } from "@/lib/routine-format";
 import { routineDraftOf, type AiRoutineDraft } from "@/lib/ai-draft";
 import type { DraftClient } from "@/lib/coach-library-data";
-import AiDraftDialog from "./AiDraftDialog";
+import AiDraftDialog, { type DraftLead } from "./AiDraftDialog";
+import { setLeadPlan } from "@/lib/coach-leads-client";
 import RoutineBuilder from "./RoutineBuilder";
 import RoutineExerciseList from "./RoutineExerciseList";
+
+/** Building for a new-client form (/library/programs/new?lead=…). */
+export type BuilderLead = DraftLead & {
+  aiConsent: boolean;
+  /** Their answers in a line each (goals, schedule, equipment, injuries). */
+  summary: string[];
+};
 
 /** A library routine as the schedule shows it. */
 export type ScheduleRoutine = {
@@ -51,22 +59,30 @@ const dayName = (d: string) => d[0].toUpperCase() + d.slice(1);
  * Each day lists its routine's exercises under the dropdown (name,
  * sets × reps or time, rest, RIR, and the AI's reason for AI drafts):
  * open by default on AI draft days, collapsed for library routines.
+ *
+ * With [lead] ("Build plan" on a new-client form): their answers on top,
+ * Build with AI opens right away when they allowed AI (and is off when
+ * they didn't), and Save makes the program their plan (setLeadPlan) and
+ * goes back to the form.
  */
 export default function ProgramBuilder({
   id,
   initial,
   routines: library,
   clients,
+  lead = null,
 }: {
   id: string | null;
   initial: ProgramDraft;
   routines: ScheduleRoutine[];
   clients: DraftClient[];
+  lead?: BuilderLead | null;
 }) {
   const router = useRouter();
   const [drafts, setDrafts] = useState<Record<string, AiRoutineDraft>>({});
   const [aiNote, setAiNote] = useState<string | null>(null);
-  const [aiOpen, setAiOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(lead?.aiConsent === true);
+  const aiBlocked = lead != null && !lead.aiConsent;
   const [editing, setEditing] = useState<string | null>(null);
   /** Days the coach opened or closed (else: open when it has an AI draft). */
   const [shown, setShown] = useState<Record<string, boolean>>({});
@@ -157,7 +173,19 @@ export default function ProgramBuilder({
       const res = (await saveCoachProgram({ id, program: { ...input, schedule } })) as SaveResult;
       // Clients who couldn't get the update (old app, sharing off).
       if (res.skipped?.length) window.alert(["Saved. Not updated:", ...res.skipped].join("\n"));
-      router.push("/library");
+      if (lead) {
+        // The program is saved; never save it twice. If linking fails, the
+        // coach picks it on the form page.
+        try {
+          await setLeadPlan({ leadId: lead.id, programId: res.id });
+        } catch (err) {
+          window.alert(`Saved to your library, but it couldn't be set as ${lead.firstName}'s plan ` +
+            `(${errorText(err)}). Pick it under Plan on their form.`);
+        }
+        router.push(`/leads/${lead.id}`);
+      } else {
+        router.push("/library");
+      }
       router.refresh();
     } catch (err) {
       setServerError(errorText(err));
@@ -180,8 +208,9 @@ export default function ProgramBuilder({
         <div className="flex gap-2">
           <button
             onClick={() => setAiOpen(true)}
-            disabled={saving}
-            className="rounded-full border border-[#9EFD06]/60 text-[#9EFD06] font-semibold text-sm px-4 py-2"
+            disabled={saving || aiBlocked}
+            title={aiBlocked ? `${lead!.firstName} didn't allow AI for their plan.` : undefined}
+            className="rounded-full border border-[#9EFD06]/60 text-[#9EFD06] font-semibold text-sm px-4 py-2 disabled:opacity-40"
           >
             ✨ Build with AI
           </button>
@@ -194,6 +223,26 @@ export default function ProgramBuilder({
           </button>
         </div>
       </div>
+
+      {lead && (
+        <div className="rounded-2xl border border-sky-500/30 bg-sky-500/5 p-4 text-sm">
+          <div className="text-sky-300 text-xs font-semibold mb-1">Plan for {lead.firstName} · new client form</div>
+          <ul className="text-zinc-300 space-y-0.5">
+            {lead.summary.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+          <p className="text-xs text-zinc-500 mt-2">
+            {lead.aiConsent
+              ? `${lead.firstName} allowed AI. `
+              : `${lead.firstName} didn't allow AI, so build this one by hand. `}
+            Saving makes it their plan: it&apos;s assigned when they join with their invite code.{" "}
+            <Link href={`/leads/${lead.id}`} className="text-sky-300 hover:underline">
+              Back to the form
+            </Link>
+          </p>
+        </div>
+      )}
 
       {aiNote && (
         <div className="rounded-2xl border border-[#9EFD06]/30 bg-[#9EFD06]/5 p-4 text-sm">
@@ -379,6 +428,7 @@ export default function ProgramBuilder({
         <AiDraftDialog
           mode="program"
           clients={clients}
+          lead={lead && lead.aiConsent ? lead : null}
           onClose={() => setAiOpen(false)}
           onResult={(plan, note) => {
             const hasDays = WEEKDAYS.some((d) => (days[d] ?? []).length > 0);
