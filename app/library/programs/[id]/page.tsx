@@ -3,7 +3,7 @@ import CoachHeader from "@/components/CoachHeader";
 import ProgramBuilder from "@/components/library/ProgramBuilder";
 import { requireCoach } from "@/lib/coach-session";
 import { getCoachProgram, listCoachRoutines, listDraftClients } from "@/lib/coach-library-data";
-import { WEEKDAYS } from "@/lib/routine-format";
+import { WEEKDAYS, editorExerciseOf } from "@/lib/routine-format";
 
 /** /library/programs/new, or /library/programs/{id} to edit. */
 export default async function ProgramPage({
@@ -46,6 +46,8 @@ export default async function ProgramPage({
             id: r.id,
             name: r.name,
             summary: `${r.category} · ${r.exercises.length} exercises · about ${r.estimatedDurationMinutes} min`,
+            // Shown under each day (RoutineExerciseList).
+            exercises: r.exercises.map(editorExerciseOf),
           }))}
         />
       </div>

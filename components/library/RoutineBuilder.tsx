@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import ExercisePicker, { EXERCISE_BY_ID, equipmentLabel, humanize } from "./ExercisePicker";
+import { exerciseSummary } from "./exercise-summary";
 import AiDraftDialog from "./AiDraftDialog";
 import { routineDraftOf, type AiRoutineDraft } from "@/lib/ai-draft";
 import type { DraftClient } from "@/lib/coach-library-data";
@@ -39,29 +40,8 @@ export type RoutineDraft = {
   exercises: EditorExercise[];
 };
 
-function mmss(s: number): string {
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-/** "3–4 × 6–10 · rest 3:00 · RIR 1–2 · progression" (the app's wording). */
-function summary(r: EditorExercise): string {
-  const timed = EXERCISE_BY_ID.get(r.exerciseId)?.tracking === "timed";
-  const sets = r.maxSets > r.minSets ? `${r.minSets}–${r.maxSets}` : `${r.minSets}`;
-  const target = timed
-    ? `${r.targetSeconds} s`
-    : r.toFailure
-      ? "to failure"
-      : r.maxReps > r.minReps
-        ? `${r.minReps}–${r.maxReps} reps`
-        : `${r.minReps} reps`;
-  const extras = [
-    r.restSeconds != null ? `rest ${mmss(r.restSeconds)}` : null,
-    r.targetRir ? `RIR ${r.targetRir.min}–${r.targetRir.max}${r.targetRir.finalSetOnly ? " (last set)" : ""}` : null,
-    !timed && !r.toFailure && r.maxReps > r.minReps && r.doubleProgression ? "progression" : null,
-    r.alternativeExerciseIds.length ? `${r.alternativeExerciseIds.length} swap${r.alternativeExerciseIds.length === 1 ? "" : "s"}` : null,
-  ].filter(Boolean);
-  return `${sets} × ${target}${extras.length ? ` · ${extras.join(" · ")}` : ""}`;
-}
+/** "3–4 × 6–10 · rest 3:00 · RIR 1–2 · progression" (exercise-summary.ts). */
+const summary = exerciseSummary;
 
 /**
  * Coach routine builder (draft): the app editor's unified format and

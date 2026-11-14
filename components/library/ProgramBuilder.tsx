@@ -9,11 +9,20 @@ import {
   saveCoachRoutine,
   type SaveResult,
 } from "@/lib/coach-library-client";
-import { LIMITS, WEEKDAYS, validateProgram } from "@/lib/routine-format";
+import { LIMITS, WEEKDAYS, validateProgram, type EditorExercise } from "@/lib/routine-format";
 import { routineDraftOf, type AiRoutineDraft } from "@/lib/ai-draft";
 import type { DraftClient } from "@/lib/coach-library-data";
 import AiDraftDialog from "./AiDraftDialog";
 import RoutineBuilder from "./RoutineBuilder";
+import RoutineExerciseList from "./RoutineExerciseList";
+
+/** A library routine as the schedule shows it. */
+export type ScheduleRoutine = {
+  id: string;
+  name: string;
+  summary: string;
+  exercises: EditorExercise[];
+};
 
 /** Draft routines from Build with AI live here ("ai:A") until Save. */
 const DRAFT = "ai:";
@@ -38,6 +47,10 @@ const dayName = (d: string) => d[0].toUpperCase() + d.slice(1);
  * "Build with AI" fills the schedule with AI draft routines that exist
  * only here (edit each one, with its reasons) until Save, which saves
  * the used ones to the library and then the program. Never assigned.
+ *
+ * Each day lists its routine's exercises under the dropdown (name,
+ * sets × reps or time, rest, RIR, and the AI's reason for AI drafts):
+ * open by default on AI draft days, collapsed for library routines.
  */
 export default function ProgramBuilder({
   id,
@@ -47,7 +60,7 @@ export default function ProgramBuilder({
 }: {
   id: string | null;
   initial: ProgramDraft;
-  routines: { id: string; name: string; summary: string }[];
+  routines: ScheduleRoutine[];
   clients: DraftClient[];
 }) {
   const router = useRouter();
@@ -55,13 +68,16 @@ export default function ProgramBuilder({
   const [aiNote, setAiNote] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
-  const routines = useMemo(
+  /** Days the coach opened or closed (else: open when it has an AI draft). */
+  const [shown, setShown] = useState<Record<string, boolean>>({});
+  const routines = useMemo<ScheduleRoutine[]>(
     () => [
       ...library,
       ...Object.entries(drafts).map(([did, d]) => ({
         id: did,
         name: `${d.name} (AI draft)`,
         summary: `${d.category} · ${d.exercises.length} exercises · saved with the program`,
+        exercises: d.exercises,
       })),
     ],
     [library, drafts],
@@ -150,6 +166,10 @@ export default function ProgramBuilder({
   }
 
   const trainingDays = WEEKDAYS.filter((d) => (days[d] ?? []).length > 0).length;
+  const isShown = (d: string) =>
+    shown[d] ?? (days[d] ?? []).some((rid) => drafts[rid] != null);
+  const scheduled = WEEKDAYS.filter((d) => (days[d] ?? []).some((rid) => byId.has(rid)));
+  const allShown = scheduled.length > 0 && scheduled.every(isShown);
 
   return (
     <div className="space-y-5">
@@ -180,8 +200,8 @@ export default function ProgramBuilder({
           <div className="text-[#9EFD06] text-xs font-semibold mb-1">✨ AI draft</div>
           <p className="text-zinc-200 whitespace-pre-line">{aiNote}</p>
           <p className="text-xs text-zinc-500 mt-2">
-            Not saved yet. Open each AI routine (Edit on its day) to check the exercises and the reason for
-            each, then Save: the routines go into your library with the program.
+            Not saved yet. Check each day&apos;s exercises and the reason for each below (Edit AI routine to
+            change one), then Save: the routines go into your library with the program.
           </p>
         </div>
       )}
@@ -231,11 +251,21 @@ export default function ProgramBuilder({
         </label>
       </div>
 
-      <div>
-        <h2 className="text-xs uppercase tracking-wider text-zinc-500">
-          Weekly schedule · {trainingDays} training {trainingDays === 1 ? "day" : "days"}
-        </h2>
-        <p className="text-xs text-zinc-600 mt-1">Every week repeats this.</p>
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xs uppercase tracking-wider text-zinc-500">
+            Weekly schedule · {trainingDays} training {trainingDays === 1 ? "day" : "days"}
+          </h2>
+          <p className="text-xs text-zinc-600 mt-1">Every week repeats this.</p>
+        </div>
+        {scheduled.length > 0 && (
+          <button
+            onClick={() => setShown(Object.fromEntries(scheduled.map((d) => [d, !allShown])))}
+            className="text-xs text-zinc-400 hover:text-white"
+          >
+            {allShown ? "Hide all exercises" : "Show all exercises"}
+          </button>
+        )}
       </div>
 
       {routines.length === 0 ? (
@@ -273,37 +303,66 @@ export default function ProgramBuilder({
                 </div>
                 {ids.length > 0 && (
                   <div className="mt-3 grid sm:grid-cols-2 gap-2">
-                    {ids.map((rid, slot) => (
-                      <label key={slot} className="block">
-                        {ids.length > 1 && (
-                          <span className="text-xs text-zinc-500">{slot === 0 ? "A" : "B"}</span>
-                        )}
-                        <select
-                          value={byId.has(rid) ? rid : ""}
-                          onChange={(e) => setRoutine(d, slot, e.target.value)}
-                          className="mt-1 w-full rounded-lg bg-zinc-900 border border-zinc-800 px-2 py-1.5 text-sm"
-                        >
-                          {!byId.has(rid) && <option value="">Missing routine: pick another</option>}
-                          {routines.map((r) => (
-                            <option key={r.id} value={r.id}>
-                              {r.name}
-                            </option>
-                          ))}
-                        </select>
-                        {byId.has(rid) && (
-                          <span className="block text-xs text-zinc-500 mt-1">{byId.get(rid)!.summary}</span>
-                        )}
-                        {drafts[rid] && (
-                          <button
-                            onClick={() => setEditing(rid)}
-                            className="mt-1 text-xs text-[#9EFD06] hover:underline"
+                    {ids.map((rid, slot) => {
+                      const routine = byId.get(rid);
+                      const label = `${dayName(d)}${ids.length > 1 ? ` ${slot === 0 ? "A" : "B"}` : ""} routine`;
+                      return (
+                        <div key={slot} className="min-w-0">
+                          {ids.length > 1 && (
+                            <span className="text-xs text-zinc-500">{slot === 0 ? "A" : "B"}</span>
+                          )}
+                          <select
+                            aria-label={label}
+                            value={routine ? rid : ""}
+                            onChange={(e) => setRoutine(d, slot, e.target.value)}
+                            className="mt-1 w-full rounded-lg bg-zinc-900 border border-zinc-800 px-2 py-1.5 text-sm"
                           >
-                            Edit AI routine
-                          </button>
-                        )}
-                      </label>
-                    ))}
+                            {!routine && <option value="">Missing routine: pick another</option>}
+                            {routines.map((r) => (
+                              <option key={r.id} value={r.id}>
+                                {r.name}
+                              </option>
+                            ))}
+                          </select>
+                          {routine && (
+                            <span className="block text-xs text-zinc-500 mt-1">{routine.summary}</span>
+                          )}
+                          {drafts[rid] ? (
+                            <button
+                              onClick={() => setEditing(rid)}
+                              className="mt-1 text-xs text-[#9EFD06] hover:underline"
+                            >
+                              Edit AI routine
+                            </button>
+                          ) : routine ? (
+                            <Link
+                              href={`/library/routines/${encodeURIComponent(rid)}`}
+                              target="_blank"
+                              rel="noopener"
+                              title="Opens in a new tab. Reload this page to see your changes here."
+                              className="mt-1 inline-block text-xs text-zinc-400 hover:text-white"
+                            >
+                              Edit routine ↗
+                            </Link>
+                          ) : null}
+                          {routine && isShown(d) && (
+                            <RoutineExerciseList exercises={routine.exercises} whys={drafts[rid]?.whys} />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
+                )}
+                {ids.some((rid) => byId.has(rid)) && (
+                  <button
+                    onClick={() => setShown((s) => ({ ...s, [d]: !isShown(d) }))}
+                    aria-expanded={isShown(d)}
+                    className="mt-2 text-xs text-zinc-400 hover:text-white"
+                  >
+                    {isShown(d)
+                      ? "▾ Hide exercises"
+                      : `▸ Show exercises (${ids.reduce((n, rid) => n + (byId.get(rid)?.exercises.length ?? 0), 0)})`}
+                  </button>
                 )}
                 {mode === "alternating" && (
                   <p className="text-xs text-zinc-500 mt-2">
@@ -327,6 +386,7 @@ export default function ProgramBuilder({
             const next: Record<string, AiRoutineDraft> = {};
             for (const r of plan.routines) next[`${DRAFT}${r.key}`] = routineDraftOf(r);
             setDrafts(next);
+            setShown({}); // AI draft days open
             setName(plan.name);
             setWeeks(plan.weeks);
             setDays(Object.fromEntries(WEEKDAYS.map((d) => [
