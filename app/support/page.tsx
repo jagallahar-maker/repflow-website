@@ -114,9 +114,10 @@ export default function SupportPage() {
 
         <FAQ question="Will Repflow read my entire Apple Health history?">
           <p>
-            No. Repflow reads only recent data: your steps from the last
-            few days, and the heart rate, energy and distance around the
-            workouts you do. It doesn&apos;t bulk-import your history.
+            No. Repflow reads only recent data: your steps and walking
+            distance from the last few days, and your heart rate during and
+            around the workouts you do. It doesn&apos;t bulk-import your
+            history or read workouts from other apps.
           </p>
           <p>
             Two things are saved to your Repflow account so they show in
