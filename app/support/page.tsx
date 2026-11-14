@@ -102,10 +102,9 @@ export default function SupportPage() {
           <p>
             If permissions look correct but sync is still broken, open
             Repflow → <strong className="text-white">Settings</strong> →{" "}
-            <strong className="text-white">Apple Health Integration</strong>{" "}
-            and tap <strong className="text-white">Grant Permissions</strong>{" "}
-            again. iOS sometimes requires re-prompting after an app
-            update.
+            <strong className="text-white">Apple Health</strong>. If it
+            says Not Connected, tap{" "}
+            <strong className="text-white">Connect Apple Health</strong>.
           </p>
           <p>
             Still stuck? Email us with the device model and iOS version
@@ -115,11 +114,19 @@ export default function SupportPage() {
 
         <FAQ question="Will Repflow read my entire Apple Health history?">
           <p>
-            Repflow only reads recent workouts, steps, heart rate, and
-            active energy needed for your current activity feed and
-            interval coaching. We don&apos;t bulk-import historical data.
-            Your raw Apple Health data never leaves your device — Repflow
-            only stores what it needs for the workout you just completed.
+            No. Repflow reads only recent data: your steps from the last
+            few days, and the heart rate, energy and distance around the
+            workouts you do. It doesn&apos;t bulk-import your history.
+          </p>
+          <p>
+            Two things are saved to your Repflow account so they show in
+            your history on every device: your daily step totals (and your
+            weekly steps on the leaderboard, if you join it) and the heart
+            rate recorded during a cardio workout, stored with that
+            session. Apple Health data is never sold, never used for
+            advertising, and never sent to Repflow&apos;s AI. You can turn
+            off access at any time in the Health app → your profile →
+            Apps → Repflow.
           </p>
         </FAQ>
 
