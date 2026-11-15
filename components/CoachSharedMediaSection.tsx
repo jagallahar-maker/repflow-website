@@ -93,6 +93,8 @@ function SharedMediaInner({
   );
 
   useEffect(() => {
+    // Loads the first page whenever the filter changes (shows loading at once).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPage(null, false, filter);
   }, [loadPage, filter]);
 
@@ -325,7 +327,6 @@ function Lightbox({
         onClick={(e) => e.stopPropagation()}
       >
         {item.mediaType === "video" ? (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
           <video
             src={item.signedUrl}
             poster={item.thumbnailSignedUrl}

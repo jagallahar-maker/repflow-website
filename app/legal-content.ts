@@ -14,7 +14,7 @@ export type LegalDoc = {
 export const termsOfService: LegalDoc = {
   "title": "Terms of Service",
   "version": 1,
-  "updated": "November 5, 2026",
+  "updated": "November 14, 2026",
   "draftNotice": "DRAFT pending legal review. These terms are a plain-language draft and have not yet been reviewed by a lawyer.",
   "intro": [
     "These Terms of Service (\"Terms\") are an agreement between you and Repflow (\"Repflow\", \"we\", \"us\") about your use of the Repflow app, the Repflow coach website, and related services (together, the \"Service\"). By creating an account or using the Service, you agree to these Terms and to our Community Guidelines and Privacy Policy. If you don't agree, don't use the Service."
@@ -76,7 +76,8 @@ export const termsOfService: LegalDoc = {
       "paragraphs": [
         "Coaches on Repflow are independent and are not employed by Repflow. Repflow isn't responsible for a coach's advice or conduct.",
         "You must be 18 or older to connect with a coach. While you're connected, your coach sees your name, email, username and age; everything else follows your choices in \"What your coach can see\" (workouts, body, nutrition, progress photos and videos, check-ins and AI summaries), which you can change at any time. Inside photos and videos, your coach sees only the items you share. We record when your coach views your data and show it to you. You can disconnect at any time, and a coach can end the connection; either way the coach loses access right away. New coach accounts are reviewed by Repflow before they can connect with athletes.",
-        "Check-ins and messages: while you're connected, you can send your coach a weekly check-in (and the coach sets which day it's due), and you and your coach can message each other in the app and on the coach website. Messages are text only, must follow the Community Guidelines, pass through an automatic language filter, and are limited to 20 an hour. Photos you attach to a check-in are shared with your coach. When the connection ends, the conversation is kept read-only for both of you and can't be deleted by either side, for safety. You can report a message (press and hold it in the app); Repflow may review reported messages, remove them, and suspend or ban the accounts involved."
+        "Check-ins and messages: while you're connected, you can send your coach a weekly check-in (and the coach sets which day it's due), and you and your coach can message each other in the app and on the coach website. Messages are text only, must follow the Community Guidelines, pass through an automatic language filter, and are limited to 20 an hour. Photos you attach to a check-in are shared with your coach. When the connection ends, the conversation is kept read-only for both of you and can't be deleted by either side, for safety. You can report a message (press and hold it in the app); Repflow may review reported messages, remove them, and suspend or ban the accounts involved.",
+        "Intake forms: a coach can turn on an intake form on repflowcoach.com, a link or QR code that people who want to train with them (adults only, no Repflow account needed) can use to send their goals, schedule, equipment, injuries and answers to health screening questions. A coach who turns it on agrees to use the answers only to talk with that person about coaching and to coach them, not to sell them, use them for marketing, or share them outside their coaching; to ask anyone who answers yes to a health question to check with their doctor before training; and to archive or delete forms from people they won't coach. Repflow may turn off a coach's form. Our Privacy Policy explains what the form collects and how long it's kept."
       ]
     },
     {

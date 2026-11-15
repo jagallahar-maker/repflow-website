@@ -1,5 +1,5 @@
 import { adminDb } from "@/lib/firebase-admin";
-import type { IntakeAnswers } from "@/lib/intake-format";
+import { intakeTermsCurrent, type IntakeAnswers } from "@/lib/intake-format";
 
 /**
  * Intake leads for the coach portal (New clients), read with the Admin
@@ -23,7 +23,8 @@ export type LeadView = {
   deleteAfter: string | null;
   archivedAt: string | null;
   planProgramId: string | null;
-  invite: { code: string; expiresAt: string | null; emailedAt: string | null } | null;
+  /** live = not expired when the page was loaded. */
+  invite: { code: string; expiresAt: string | null; emailedAt: string | null; live: boolean } | null;
 };
 
 export type ClientIntakeView = {
@@ -50,6 +51,7 @@ function consentOf(v: unknown): LeadView["consent"] {
 
 function leadOf(id: string, d: Raw): LeadView {
   const invite = d.invite as Raw | undefined;
+  const expiresAt = invite ? iso(invite.expiresAt) : null;
   return {
     id,
     status: (["new", "contacted", "invited", "archived"].includes(String(d.status))
@@ -66,7 +68,12 @@ function leadOf(id: string, d: Raw): LeadView {
     archivedAt: iso(d.archivedAt),
     planProgramId: typeof d.planProgramId === "string" ? d.planProgramId : null,
     invite: invite && typeof invite.code === "string"
-      ? { code: invite.code, expiresAt: iso(invite.expiresAt), emailedAt: iso(invite.emailedAt) }
+      ? {
+          code: invite.code,
+          expiresAt,
+          emailedAt: iso(invite.emailedAt),
+          live: expiresAt ? new Date(expiresAt).getTime() > Date.now() : false,
+        }
       : null,
   };
 }
@@ -92,10 +99,13 @@ export async function countNewLeads(coachId: string): Promise<number> {
   return snap.data().count;
 }
 
-/** Whether the coach's form is on (coaches/{c}.intakeEnabled). */
-export async function intakeEnabled(coachId: string): Promise<boolean> {
+/**
+ * Whether the coach's form is on (coaches/{c}.intakeEnabled) and whether
+ * they've agreed to the current coach terms (coaches/{c}.intakeTerms).
+ */
+export async function intakeSettings(coachId: string): Promise<{ enabled: boolean; termsAgreed: boolean }> {
   const d = await adminDb.collection("coaches").doc(coachId).get();
-  return d.get("intakeEnabled") === true;
+  return { enabled: d.get("intakeEnabled") === true, termsAgreed: intakeTermsCurrent(d.get("intakeTerms")) };
 }
 
 /** The intake a client joined with (linkCoachByInviteCode), if any. */

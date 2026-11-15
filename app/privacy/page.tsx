@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
-          Effective date: May 3, 2026 · Last updated: November 5, 2026
+          Effective date: May 3, 2026 · Last updated: November 14, 2026
         </p>
 
         <div className="mt-10 space-y-6 text-zinc-300 leading-relaxed">
@@ -197,6 +197,14 @@ export default function PrivacyPage() {
             in your contacts who aren&apos;t already on Repflow.
           </p>
 
+          <SubHeading>Coach intake forms</SubHeading>
+          <p>
+            If you fill in a coach&apos;s intake form on repflowcoach.com
+            (you don&apos;t need a Repflow account for it), section 6
+            explains what it collects, who sees it, and how long it&apos;s
+            kept.
+          </p>
+
           <SubHeading>Information we do not collect</SubHeading>
           <ul className="list-disc pl-6 space-y-2">
             <li>We do not use third-party advertising networks.</li>
@@ -309,6 +317,12 @@ export default function PrivacyPage() {
               your account.
             </li>
             <li>
+              <strong className="text-white">
+                With the coach whose intake form you fill in:
+              </strong>{" "}
+              see section 6.
+            </li>
+            <li>
               <strong className="text-white">With service providers:</strong>{" "}
               Google (Firebase) for storage and authentication. Mapbox for
               rendering maps of your cardio routes — your route data is
@@ -342,7 +356,160 @@ export default function PrivacyPage() {
           </ul>
         </Section>
 
-        <Section title="6. Your rights and choices">
+        <Section id="intake" title="6. Coach intake forms">
+          <p>
+            A coach on Repflow can share an intake form (a link or QR code
+            to a page on repflowcoach.com) with people who want to train
+            with them. You don&apos;t need a Repflow account to fill one in,
+            and it&apos;s for adults 18 and over. This section covers those
+            forms.
+          </p>
+
+          <SubHeading>What the form asks</SubHeading>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>
+              <strong className="text-white">Contact:</strong> your name and
+              email, and optionally a phone number, the best time to reach
+              you, and a short note.
+            </li>
+            <li>
+              <strong className="text-white">About you:</strong> your age,
+              your goals (and, if you like, in your own words), your
+              training experience, and whether you want training only or
+              training and diet.
+            </li>
+            <li>
+              <strong className="text-white">Training:</strong> days a week
+              and session length, where you train, and the equipment you
+              have. For training and diet, also your weight, goal weight and
+              any food restrictions (all optional).
+            </li>
+            <li>
+              <strong className="text-white">Health:</strong> body areas to
+              protect (injuries), with optional details, and 7 yes/no health
+              screening questions (for example about heart conditions, chest
+              pain, dizziness, or medication for a chronic condition). A yes
+              tells the coach that medical clearance is recommended, and we
+              suggest you check with your doctor before training.
+            </li>
+            <li>Anything else you want your coach to know (optional).</li>
+          </ul>
+          <p>
+            The health answers, injuries and weights are health data. Please
+            don&apos;t write more health detail in the text boxes than your
+            coach needs to plan your training. Our{" "}
+            <Link
+              href="/consumer-health-privacy"
+              className="text-lime-400 hover:text-lime-300 underline underline-offset-2"
+            >
+              Consumer Health Data Privacy Policy
+            </Link>{" "}
+            explains your rights over health data.
+          </p>
+
+          <SubHeading>Who sees your answers</SubHeading>
+          <p>
+            Only the coach whose form you filled in, in their coach portal.
+            Repflow stores your answers for that coach (in Google Firebase,
+            see section 3) and doesn&apos;t use them for anything else: they
+            aren&apos;t sold, used for advertising, or shown to other coaches
+            or users. Repflow looks at a form only to run the service, fix a
+            problem, or when the law requires it. Coaches are independent
+            (see section 8 of our Terms of Service): a coach agrees to use
+            your answers only to talk with you about coaching and to coach
+            you, and is responsible for how they use them.
+          </p>
+
+          <SubHeading>Emails</SubHeading>
+          <p>
+            We email you a confirmation with a link to delete your answers
+            (and, if you answered yes to a health question, a reminder to
+            check with your doctor). We email the coach that a form arrived,
+            with your first name only. Your answers are never put in an
+            email.
+          </p>
+
+          <SubHeading>AI, only if you allow it</SubHeading>
+          <p>
+            The form has a separate, optional box that lets your coach use
+            Repflow&apos;s AI (Anthropic&apos;s Claude) to draft a training
+            plan from your form. If you tick it and your coach uses it, we
+            send Anthropic your goals, experience, schedule, equipment, the
+            areas to protect and their details, your notes, and an age range
+            (for example &quot;30s&quot;). We never send your name, contact
+            details, health screening answers, weights or food restrictions.
+            Anthropic processes this only to produce the draft and
+            doesn&apos;t use it to train its models. If you don&apos;t tick
+            the box, your coach can&apos;t use AI on your form.
+          </p>
+
+          <SubHeading>Protection against spam</SubHeading>
+          <p>
+            The form uses Google reCAPTCHA Enterprise (through Firebase App
+            Check), which checks your browser and device to tell people from
+            bots. Google&apos;s{" "}
+            <a
+              href="https://policies.google.com/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lime-400 hover:text-lime-300 underline underline-offset-2"
+            >
+              Privacy Policy
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://policies.google.com/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lime-400 hover:text-lime-300 underline underline-offset-2"
+            >
+              Terms of Service
+            </a>{" "}
+            apply to it. To limit how many forms can be sent, we keep one-way
+            hashes (not the originals) of your IP address and email address
+            with the times forms were sent.
+          </p>
+
+          <SubHeading>How long we keep them</SubHeading>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>
+              If you don&apos;t become a client: 180 days after the last
+              activity on your form, or 30 days after the coach archives it.
+              Then it&apos;s deleted automatically.
+            </li>
+            <li>
+              You can delete your answers at any time with the link in your
+              confirmation email, or by emailing us. The coach can also
+              delete your form.
+            </li>
+            <li>
+              If you join the coach on Repflow with their invite code, your
+              answers move into your client record with that coach and the
+              form itself is deleted. Your coach can see them only while you
+              are their client. They&apos;re deleted when you delete your
+              Repflow account, or sooner if you email us.
+            </li>
+          </ul>
+
+          <SubHeading>Your choices</SubHeading>
+          <p>
+            The form is optional, and so are the phone, details and notes
+            fields. The health questions are required, because they help your
+            coach plan safely; if you&apos;d rather not answer them, contact
+            the coach directly instead. To change your answers, send the
+            form again with the same email within 24 hours, or ask your
+            coach. To see, correct or delete your answers, email{" "}
+            <a
+              href="mailto:repflowtraining@gmail.com"
+              className="text-lime-400 hover:text-lime-300 underline underline-offset-2"
+            >
+              repflowtraining@gmail.com
+            </a>{" "}
+            from the email you put on the form.
+          </p>
+        </Section>
+
+        <Section title="7. Your rights and choices">
           <SubHeading>Access and export</SubHeading>
           <p>
             You can view all of your data inside the app. To request a
@@ -409,12 +576,24 @@ export default function PrivacyPage() {
             CCPA, and we do not process personal data for cross-context
             behavioral advertising.
           </p>
+          <p>
+            Health data (for example under Washington&apos;s My Health My
+            Data Act): see our{" "}
+            <Link
+              href="/consumer-health-privacy"
+              className="text-lime-400 hover:text-lime-300 underline underline-offset-2"
+            >
+              Consumer Health Data Privacy Policy
+            </Link>
+            .
+          </p>
         </Section>
 
-        <Section title="7. Children">
+        <Section title="8. Children">
           <p>
             Repflow is not intended for children under 13. We do not
             knowingly collect personal information from anyone under 13.
+            Coaching and coach intake forms are for adults 18 and over.
             If you believe a child under 13 has provided us with personal
             information, please email{" "}
             <a
@@ -427,7 +606,7 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="8. Data retention">
+        <Section title="9. Data retention">
           <p>
             We retain your account data for as long as your account is
             active. When you delete your account, your data is permanently
@@ -448,9 +627,10 @@ export default function PrivacyPage() {
             to apply monthly limits, and answers that our safety checks
             flag, or that you report, are kept for up to 90 days for review.
           </p>
+          <p>Coach intake forms: see section 6.</p>
         </Section>
 
-        <Section title="9. Security">
+        <Section title="10. Security">
           <p>
             We protect your data with industry-standard measures including
             TLS encryption in transit, Google-managed encryption at rest,
@@ -462,7 +642,7 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="10. Changes to this policy">
+        <Section title="11. Changes to this policy">
           <p>
             We may update this policy from time to time. Material changes
             will be communicated via the app or email, and the
@@ -472,7 +652,7 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="11. Contact">
+        <Section title="12. Contact">
           <p>
             Privacy questions, data requests, or anything else covered by
             this policy:
@@ -512,14 +692,16 @@ export default function PrivacyPage() {
 }
 
 function Section({
+  id,
   title,
   children,
 }: {
+  id?: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-12">
+    <section id={id} className="mt-12 scroll-mt-8">
       <h2 className="text-xl sm:text-2xl font-bold tracking-tight border-b border-zinc-900 pb-3">
         {title}
       </h2>

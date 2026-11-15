@@ -15,6 +15,9 @@ export default function Footer() {
           <Link href="/privacy" className="hover:text-lime-400 transition">
             Privacy
           </Link>
+          <Link href="/consumer-health-privacy" className="hover:text-lime-400 transition">
+            Consumer Health Data Privacy
+          </Link>
           <Link href="/terms" className="hover:text-lime-400 transition">
             Terms
           </Link>

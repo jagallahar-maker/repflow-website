@@ -8,8 +8,17 @@
  * Self-contained on purpose (no imports).
  */
 
-/** Bump when the questions or consent wording change (old forms reload). */
-export const INTAKE_CONSENT_VERSION = 1;
+/**
+ * Bump when the questions or consent wording change (old forms reload).
+ * 2 (2026-11-14): links the intake section of the Privacy Policy and the
+ * Consumer Health Data Privacy Policy; the AI box lists everything the AI
+ * is given (leadAiContext).
+ */
+export const INTAKE_CONSENT_VERSION = 2;
+
+/** The policies the consent box and the confirmation email link to. */
+export const PRIVACY_PATH = "/privacy#intake";
+export const HEALTH_PRIVACY_PATH = "/consumer-health-privacy";
 
 export const MIN_AGE = 18;
 export const MAX_AGE = 100;
@@ -107,15 +116,49 @@ export const SCREENING: string[] = [
     "activity?",
 ];
 
-export const consentText = (coach: string) =>
+// The required box up to its two policy links (the form adds the links).
+export const consentLead = (coach: string) =>
   `I agree that ${coach} can use my answers, including my health ` +
-  "screening and injury answers, to contact me and plan my coaching. " +
-  `Repflow stores them for ${coach}. I've read the Privacy Policy.`;
+  "screening and injury answers, to contact me and plan my coaching, and " +
+  `that Repflow stores them for ${coach} as described in`;
 
+// The required box as agreed to (INTAKE_CONSENT_VERSION).
+export const consentText = (coach: string) =>
+  `${consentLead(coach)} the Privacy Policy and the Consumer Health Data ` +
+  "Privacy Policy.";
+
+// The optional AI box: exactly what leadAiContext sends, and what not.
 export const aiConsentText = (coach: string) =>
-  `Let ${coach} use Repflow's AI (Anthropic) to draft my training plan ` +
-  "from my goals, schedule, equipment and injuries. My name, contact " +
-  "details and health screening answers are never sent.";
+  `Let ${coach} use Repflow's AI (Anthropic's Claude) to draft my ` +
+  "training plan from my goals, experience, schedule, equipment, injuries " +
+  "and notes, with an age range. My name, contact details, health " +
+  "screening answers, weights and food restrictions are never sent.";
+
+/**
+ * What a coach agrees to before turning their form on (coach portal →
+ * New clients; setIntakeEnabled saves coaches/{c}.intakeTerms {version,
+ * acceptedAt, uid}). Bump the version when the points change: the coach
+ * agrees again (their form stays on).
+ */
+export const INTAKE_COACH_TERMS_VERSION = 1;
+export const INTAKE_COACH_TERMS: string[] = [
+  "I'll use the answers only to talk with that person about coaching and " +
+    "to coach them. I won't sell them, use them for marketing, or share " +
+    "them outside my coaching.",
+  "I'll ask anyone who answers yes to a health question to check with " +
+    "their doctor before we start training.",
+  "I'll archive or delete forms from people I won't be coaching.",
+];
+
+/**
+ * Whether a coach's saved agreement is the current one.
+ * @param {unknown} saved coaches/{c}.intakeTerms.
+ * @return {boolean} Agreed to INTAKE_COACH_TERMS_VERSION.
+ */
+export function intakeTermsCurrent(saved: unknown): boolean {
+  return (saved as {version?: unknown} | null | undefined)?.version ===
+    INTAKE_COACH_TERMS_VERSION;
+}
 
 export const doctorNote = (coach: string) =>
   "Because you answered yes to a health question, check with your doctor " +

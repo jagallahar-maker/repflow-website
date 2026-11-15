@@ -20,7 +20,7 @@ export type LeadActionsProps = {
   email: string;
   aiConsent: boolean;
   planProgramId: string | null;
-  invite: { code: string; expiresAt: string | null; emailedAt: string | null } | null;
+  invite: { code: string; expiresAt: string | null; emailedAt: string | null; live: boolean } | null;
   programs: { id: string; name: string }[];
 };
 
@@ -35,7 +35,8 @@ export default function LeadActions(p: LeadActionsProps) {
   const [sendEmail, setSendEmail] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const inviteLive = p.invite?.expiresAt ? new Date(p.invite.expiresAt).getTime() > Date.now() : false;
+  // Worked out on the server when the page loads (every action refreshes it).
+  const inviteLive = p.invite?.live ?? false;
   const planName = p.programs.find((x) => x.id === p.planProgramId)?.name ?? null;
 
   async function run(key: string, fn: () => Promise<unknown>, after?: () => void) {

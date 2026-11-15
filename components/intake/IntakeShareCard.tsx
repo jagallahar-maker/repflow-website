@@ -1,10 +1,12 @@
 "use client";
 
 import QRCode from "qrcode";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { errorText } from "@/lib/coach-library-client";
 import { setIntakeEnabled } from "@/lib/coach-leads-client";
+import { INTAKE_COACH_TERMS } from "@/lib/intake-format";
 
 /** Always the live site, so a printed QR code works from anywhere. */
 const SITE = "https://repflowcoach.com";
@@ -12,17 +14,32 @@ const SITE = "https://repflowcoach.com";
 /**
  * "Your intake form" (New clients): the on / off switch
  * (coaches/{c}.intakeEnabled via setIntakeEnabled), the link with Copy,
- * the QR code (?src=qr) with a PNG download, and Preview.
+ * the QR code (?src=qr) with a PNG download, and Preview. Turning it on
+ * first asks the coach to agree to INTAKE_COACH_TERMS (saved by
+ * setIntakeEnabled with acceptTerms); a form that's on without the
+ * current agreement shows the same panel with "Agree".
  */
-export default function IntakeShareCard({ handle, enabled }: { handle: string; enabled: boolean }) {
+export default function IntakeShareCard({
+  handle,
+  enabled,
+  termsAgreed,
+}: {
+  handle: string;
+  enabled: boolean;
+  termsAgreed: boolean;
+}) {
   const router = useRouter();
   const link = `${SITE}/c/${handle}/start`;
   const qrLink = `${link}?src=qr`;
   const [on, setOn] = useState(enabled);
+  const [agreed, setAgreed] = useState(termsAgreed);
+  const [askTerms, setAskTerms] = useState(false);
+  const [ticked, setTicked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
+  const showTerms = !agreed && (askTerms || on);
 
   useEffect(() => {
     QRCode.toDataURL(qrLink, { width: 600, margin: 2, errorCorrectionLevel: "M" })
@@ -30,8 +47,30 @@ export default function IntakeShareCard({ handle, enabled }: { handle: string; e
       .catch(() => setQr(null));
   }, [qrLink]);
 
-  async function toggle() {
+  async function save(next: boolean, acceptTerms = false) {
+    setBusy(true);
+    setError(null);
+    try {
+      await setIntakeEnabled({ enabled: next, ...(acceptTerms ? { acceptTerms: true } : {}) });
+      setOn(next);
+      if (acceptTerms) {
+        setAgreed(true);
+        setAskTerms(false);
+      }
+      router.refresh();
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function toggle() {
     const next = !on;
+    if (next && !agreed) {
+      setAskTerms(true);
+      return;
+    }
     if (
       next &&
       !window.confirm(
@@ -41,17 +80,7 @@ export default function IntakeShareCard({ handle, enabled }: { handle: string; e
     ) {
       return;
     }
-    setBusy(true);
-    setError(null);
-    try {
-      await setIntakeEnabled({ enabled: next });
-      setOn(next);
-      router.refresh();
-    } catch (err) {
-      setError(errorText(err));
-    } finally {
-      setBusy(false);
-    }
+    void save(next);
   }
 
   async function copy() {
@@ -85,6 +114,61 @@ export default function IntakeShareCard({ handle, enabled }: { handle: string; e
         </button>
       </div>
       {error && <p role="alert" className="mt-2 text-sm text-red-300">{error}</p>}
+
+      {showTerms && (
+        <div className="mt-4 rounded-xl border border-[#9EFD06]/40 bg-[#9EFD06]/5 p-4 space-y-3">
+          <p className="text-sm font-semibold">{on ? "Agree to keep your form on" : "Before you turn it on"}</p>
+          <p className="text-sm text-zinc-400">
+            People send you their goals, injuries and health screening answers through this form. You agree:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-zinc-300">
+            {INTAKE_COACH_TERMS.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+          <p className="text-xs text-zinc-500">
+            Also in the{" "}
+            <Link href="/terms" target="_blank" rel="noopener" className="underline hover:text-zinc-300">
+              Terms of Service
+            </Link>{" "}
+            (8. Coaches). What the form collects and how long it&apos;s kept:{" "}
+            <Link href="/privacy#intake" target="_blank" rel="noopener" className="underline hover:text-zinc-300">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+          <label className="flex items-center gap-2 text-sm text-zinc-200">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-[#9EFD06]"
+              checked={ticked}
+              onChange={(e) => setTicked(e.target.checked)}
+            />
+            I agree
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              disabled={!ticked || busy}
+              onClick={() => void save(true, true)}
+              className="rounded-full bg-[#9EFD06] text-black text-sm font-semibold px-4 py-1.5 disabled:opacity-40"
+            >
+              {busy ? "Saving…" : on ? "Agree" : "Turn on form"}
+            </button>
+            {!on && (
+              <button
+                disabled={busy}
+                onClick={() => {
+                  setAskTerms(false);
+                  setTicked(false);
+                }}
+                className="rounded-full border border-zinc-700 text-sm px-4 py-1.5 hover:border-zinc-500"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {on ? (
         <div className="mt-4 flex flex-col sm:flex-row gap-4">

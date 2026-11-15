@@ -6,17 +6,19 @@ import {
   CONTACT_TIMES,
   EXPERIENCE,
   GOALS,
+  HEALTH_PRIVACY_PATH,
   HOME_EQUIPMENT,
   INJURY_AREAS,
   INTAKE_CONSENT_VERSION,
   LIMITS,
   MIN_AGE,
   PLACES,
+  PRIVACY_PATH,
   SCOPES,
   SCREENING,
   SESSION_MINUTES,
   aiConsentText,
-  consentText,
+  consentLead,
   doctorNote,
   minorMessage,
   parseIntake,
@@ -157,10 +159,13 @@ export default function IntakeForm({
   const [problem, setProblem] = useState<string | null>(null);
   const [done, setDone] = useState<{ clearance: boolean } | null>(null);
   const [verifyReady, setVerifyReady] = useState(true);
-  const startedAt = useRef(Date.now());
+  const startedAt = useRef(0); // set when the form opens (below)
   const top = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    startedAt.current = Date.now();
+    // Browser-only (App Check, saved answers), so read after the page loads.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVerifyReady(startAppCheck());
     try {
       const saved = window.localStorage.getItem(storeKey);
@@ -337,6 +342,13 @@ export default function IntakeForm({
 
         {step === 0 && (
           <>
+            <p className="rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-400">
+              Your answers go only to {coach.name} and are stored by Repflow. Step 5 asks {SCREENING.length} yes/no
+              health questions so {coach.name} can plan your training safely.{" "}
+              <Link href={PRIVACY_PATH} target="_blank" rel="noopener" className="text-zinc-300 underline">
+                How your answers are handled
+              </Link>
+            </p>
             <Field label="Your name" error={errors.name}>
               <input className={input} value={a.name} maxLength={LIMITS.name} autoComplete="name"
                 onChange={(e) => set("name", e.target.value)} />
@@ -536,10 +548,14 @@ export default function IntakeForm({
                 <input type="checkbox" className="mt-1 h-5 w-5 accent-[#9EFD06]" checked={consent}
                   onChange={(e) => setConsent(e.target.checked)} />
                 <span className="text-sm text-zinc-200">
-                  {consentText(coach.name).replace("I've read the Privacy Policy.", "")}
-                  I&apos;ve read the{" "}
-                  <Link href="/privacy" target="_blank" rel="noopener" className="text-[#9EFD06] underline">
+                  {/* consentText (intake-format.ts) with its two links. */}
+                  {consentLead(coach.name)} the{" "}
+                  <Link href={PRIVACY_PATH} target="_blank" rel="noopener" className="text-[#9EFD06] underline">
                     Privacy Policy
+                  </Link>{" "}
+                  and the{" "}
+                  <Link href={HEALTH_PRIVACY_PATH} target="_blank" rel="noopener" className="text-[#9EFD06] underline">
+                    Consumer Health Data Privacy Policy
                   </Link>
                   .
                 </span>

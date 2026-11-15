@@ -2,7 +2,7 @@ import Link from "next/link";
 import CoachHeader from "@/components/CoachHeader";
 import IntakeShareCard from "@/components/intake/IntakeShareCard";
 import { requireCoach } from "@/lib/coach-session";
-import { intakeEnabled, listLeads, type LeadView } from "@/lib/coach-leads-data";
+import { intakeSettings, listLeads, type LeadView } from "@/lib/coach-leads-data";
 import { GOALS } from "@/lib/intake-format";
 
 /**
@@ -29,7 +29,10 @@ export default async function LeadsPage({
 }) {
   const session = await requireCoach();
   const archived = (await searchParams).show === "archived";
-  const [all, enabled] = await Promise.all([listLeads(session.coachId), intakeEnabled(session.coachId)]);
+  const [all, { enabled, termsAgreed }] = await Promise.all([
+    listLeads(session.coachId),
+    intakeSettings(session.coachId),
+  ]);
   const open = all.filter((l) => l.status !== "archived");
   const shown = archived ? all.filter((l) => l.status === "archived") : open;
   const newCount = open.filter((l) => l.status === "new").length;
@@ -44,7 +47,7 @@ export default async function LeadsPage({
         </p>
 
         <div className="mb-6">
-          <IntakeShareCard handle={session.coachId} enabled={enabled} />
+          <IntakeShareCard handle={session.coachId} enabled={enabled} termsAgreed={termsAgreed} />
         </div>
 
         <div className="flex gap-2 mb-4">
