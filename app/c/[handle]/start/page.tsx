@@ -13,11 +13,23 @@ import IntakeForm from "@/components/intake/IntakeForm";
 
 const HANDLE = /^[a-z][a-z0-9_]{2,19}$/;
 
-async function coachFor(handle: string): Promise<{ handle: string; name: string } | null> {
+/**
+ * The coach's first name for the form's text (the title and the consent
+ * boxes keep the full name): the first word, skipping a leading "Coach" or
+ * "Dr." ("Coach Mike Lee" → "Mike"); a one-word name stays as is.
+ */
+function firstNameOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const rest = words.length > 1 && /^(coach|dr\.?)$/i.test(words[0]) ? words.slice(1) : words;
+  return rest[0] || name;
+}
+
+async function coachFor(handle: string): Promise<{ handle: string; name: string; firstName: string } | null> {
   if (!HANDLE.test(handle)) return null;
   const snap = await adminDb.collection("coaches").doc(handle).get();
   if (!snap.exists || snap.get("isActive") !== true || snap.get("intakeEnabled") !== true) return null;
-  return { handle, name: String(snap.get("displayName") || handle) };
+  const name = String(snap.get("displayName") || handle);
+  return { handle, name, firstName: firstNameOf(name) };
 }
 
 export async function generateMetadata({
@@ -64,7 +76,7 @@ export default async function IntakePage({
           <div className="min-w-0">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Train with {coach.name}</h1>
             <p className="mt-1 text-zinc-400 text-sm">
-              A few questions before your first session, so {coach.name} can plan it. About 4 minutes.
+              A few questions before your first session, so {coach.firstName} can plan it. About 4 minutes.
             </p>
           </div>
         </div>

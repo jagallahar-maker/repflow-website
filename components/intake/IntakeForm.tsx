@@ -144,7 +144,8 @@ export default function IntakeForm({
   coach,
   source,
 }: {
-  coach: { handle: string; name: string };
+  /** name: the title and consent boxes; firstName: every other line. */
+  coach: { handle: string; name: string; firstName: string };
   source: "link" | "qr";
 }) {
   const storeKey = `repflow_intake_${coach.handle}`;
@@ -270,7 +271,7 @@ export default function IntakeForm({
       } else if (x.code === "resource-exhausted") {
         setProblem("Too many forms were sent from here. Please try again later.");
       } else if (x.code === "not-found") {
-        setProblem(`This form isn't available anymore. Please contact ${coach.name} directly.`);
+        setProblem(`This form isn't available anymore. Please contact ${coach.firstName} directly.`);
       } else if (x.code === "unauthenticated" || x.code === "permission-denied") {
         setProblem("We couldn't verify this browser. Reload the page and try again.");
       } else {
@@ -284,7 +285,7 @@ export default function IntakeForm({
   if (minor) {
     return (
       <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-        <p className="text-zinc-200">{minorMessage(coach.name)}</p>
+        <p className="text-zinc-200">{minorMessage(coach.firstName)}</p>
         <button onClick={() => { setMinor(false); set("age", ""); }} className="mt-4 text-sm text-zinc-400 hover:text-white">
           ← I entered my age wrong
         </button>
@@ -295,11 +296,11 @@ export default function IntakeForm({
   if (done) {
     return (
       <div ref={top} className="rounded-2xl border border-[#9EFD06]/30 bg-[#9EFD06]/5 p-6 space-y-3">
-        <h2 className="text-xl font-bold">Thanks, {coach.name} has your answers</h2>
-        <p className="text-zinc-300">{coach.name} will contact you to set up your first session.</p>
+        <h2 className="text-xl font-bold">Thanks, {coach.firstName} has your answers</h2>
+        <p className="text-zinc-300">{coach.firstName} will contact you to set up your first session.</p>
         {done.clearance && (
           <p className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 text-sm text-amber-100">
-            {doctorNote(coach.name)}
+            {doctorNote(coach.firstName)}
           </p>
         )}
         <p className="text-sm text-zinc-500">
@@ -343,8 +344,8 @@ export default function IntakeForm({
         {step === 0 && (
           <>
             <p className="rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-400">
-              Your answers go only to {coach.name} and are stored by Repflow. Step 5 asks {SCREENING.length} yes/no
-              health questions so {coach.name} can plan your training safely.{" "}
+              Your answers go only to {coach.firstName} and are stored by Repflow. Step 5 asks {SCREENING.length} yes/no
+              health questions so {coach.firstName} can plan your training safely.{" "}
               <Link href={PRIVACY_PATH} target="_blank" rel="noopener" className="text-zinc-300 underline">
                 How your answers are handled
               </Link>
@@ -409,7 +410,7 @@ export default function IntakeForm({
               </div>
               {errors.experience && <p role="alert" className="mt-1 text-xs text-red-400">{errors.experience}</p>}
             </fieldset>
-            <Group legend={`What do you want from ${coach.name}?`} error={errors.scope}>
+            <Group legend={`What do you want from ${coach.firstName}?`} error={errors.scope}>
               {SCOPES.map((s) => (
                 <button key={s.id} type="button" aria-pressed={a.scope === s.id} className={chip(a.scope === s.id)}
                   onClick={() => set("scope", s.id)}>
@@ -511,7 +512,7 @@ export default function IntakeForm({
           <>
             <p className="text-sm text-zinc-400">
               A standard health check before starting a new exercise program. If you answer yes to any
-              question, check with your doctor before you start. {coach.name} will see your answers.
+              question, check with your doctor before you start. {coach.firstName} will see your answers.
             </p>
             <ol className="space-y-3">
               {SCREENING.map((q, i) => (
@@ -591,7 +592,7 @@ export default function IntakeForm({
           )}
           <button type="submit" disabled={sending || (last && !verifyReady)}
             className="flex-1 min-h-12 rounded-full bg-[#9EFD06] text-black font-bold disabled:opacity-50">
-            {last ? (sending ? "Sending…" : `Send to ${coach.name}`) : "Next"}
+            {last ? (sending ? "Sending…" : `Send to ${coach.firstName}`) : "Next"}
           </button>
         </div>
       </form>
