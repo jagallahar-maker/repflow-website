@@ -15,6 +15,10 @@ export type ClientSummaryDoc = {
   linkedAt?: string | { toDate?: () => Date } | null;
   unlinkedAt?: string | { toDate?: () => Date } | null;
   endedAt?: string | { toDate?: () => Date } | null;
+  /** "coach" when the coach ended it (endClientRelationship). */
+  endedBy?: string;
+  /** The coach allowed them to reconnect with the invite code (allowClientReconnect). */
+  reconnectAllowed?: boolean;
   /** Wall-clock (client timezone) time of the coach's last visit. */
   coachLastViewedLocal?: string;
   /** Check-in weekday, 1 = Mon … 7 = Sun (setClientCheckinDay). */

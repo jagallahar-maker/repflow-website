@@ -1,5 +1,6 @@
 import CoachHeader from "@/components/CoachHeader";
 import InviteCodeCard from "@/components/InviteCodeCard";
+import AllowReconnectButton from "@/components/AllowReconnectButton";
 import { countNewLeads } from "@/lib/coach-leads-data";
 import { formatShortDate, getAuthEmails, getCoachClients } from "@/lib/coach-data";
 import { formatDay } from "@/lib/trend.ts";
@@ -19,6 +20,9 @@ type PastClient = {
   id: string;
   displayName: string;
   endedAt: string | { toDate?: () => Date } | null;
+  /** The coach ended it: their invite code refuses this person until allowed. */
+  endedByCoach: boolean;
+  reconnectAllowed: boolean;
 };
 
 type Filter = "all" | "attention" | "ontrack";
@@ -40,6 +44,8 @@ async function getRoster(coachId: string) {
       id: c.id,
       displayName: c.displayName || "Unnamed Client",
       endedAt: c.unlinkedAt ?? c.endedAt ?? c.updatedAt ?? null,
+      endedByCoach: c.status === "ended" && c.endedBy === "coach",
+      reconnectAllowed: c.reconnectAllowed === true,
     }));
   const emails = await getAuthEmails(active.map((c) => c.id));
   const rows = await Promise.all(
@@ -105,7 +111,7 @@ export default async function ClientsPage({
         </div>
 
         <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_18rem]">
-          <InviteCodeCard inviteCode={session.inviteCode} />
+          <InviteCodeCard inviteCode={session.inviteCode} canCustomize />
           <Link
             href="/leads"
             className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 hover:border-zinc-600 transition flex flex-col justify-center"
@@ -176,14 +182,23 @@ export default async function ClientsPage({
                   className="flex items-center justify-between px-5 py-3 text-sm"
                 >
                   <span className="text-zinc-400 truncate">{p.displayName}</span>
-                  <span className="text-zinc-600 shrink-0 ml-4">
-                    Ended {formatShortDate(p.endedAt)}
+                  <span className="flex items-center gap-3 shrink-0 ml-4">
+                    {p.endedByCoach && (
+                      <AllowReconnectButton
+                        clientId={p.id}
+                        allowed={p.reconnectAllowed}
+                      />
+                    )}
+                    <span className="text-zinc-600">
+                      Ended {formatShortDate(p.endedAt)}
+                    </span>
                   </span>
                 </div>
               ))}
             </div>
             <p className="mt-2 text-xs text-zinc-600">
-              You no longer have access to past clients&apos; data.
+              You no longer have access to past clients&apos; data. Clients you
+              ended can&apos;t reconnect with your invite code unless you allow it.
             </p>
           </div>
         )}
