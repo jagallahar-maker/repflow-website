@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+import RepflowLogo from "@/components/brand/RepflowLogo";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -6,9 +7,15 @@ export default function Footer() {
   return (
     <footer className="border-t border-zinc-900 bg-black text-zinc-400">
       <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="text-sm">
-          <span className="font-bold text-white">Repflow</span>
-          <span className="ml-3 text-zinc-600">© {year}</span>
+        <div className="flex items-center gap-3 text-sm">
+          <Link
+            href="/"
+            aria-label="Repflow home"
+            className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+          >
+            <RepflowLogo size="sm" />
+          </Link>
+          <span className="text-zinc-600">© {year}</span>
         </div>
 
         <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">

@@ -12,6 +12,11 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Repflow lime (the app's AppColors.primary): text-brand, bg-brand. */
+@theme {
+  --color-brand: #9efd06;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

@@ -65,8 +65,8 @@ export default async function IntakePage({
   return (
     <main className="min-h-screen bg-black text-white">
       <div className="max-w-xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
-        <div className="text-xs font-semibold tracking-widest text-zinc-500">REPFLOW</div>
-        <div className="mt-6 flex items-center gap-4">
+        {/* The Repflow mark is in the site header above. */}
+        <div className="flex items-center gap-4">
           <div
             aria-hidden
             className="w-14 h-14 shrink-0 rounded-full bg-[#9EFD06]/15 border border-[#9EFD06]/40 text-[#9EFD06] flex items-center justify-center text-lg font-bold"

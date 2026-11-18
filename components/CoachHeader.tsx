@@ -4,6 +4,7 @@ import { signOut } from "firebase/auth";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase-client";
+import RepflowLogo from "@/components/brand/RepflowLogo";
 
 type CoachHeaderProps = {
   coachId: string;
@@ -27,20 +28,23 @@ export default function CoachHeader({
   }
 
   return (
-    <header className="sticky top-0 z-40 -mx-6 mb-6 bg-black/80 backdrop-blur border-b border-zinc-900">
-      <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
+    // Edge to edge over the page padding (px-4, sm:px-6). Phones: the
+    // logo and Sign out on top, the section links on their own row.
+    <header className="sticky top-0 z-40 -mx-4 sm:-mx-6 mb-6 bg-black/80 backdrop-blur border-b border-zinc-900">
+      <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 sm:px-6 py-3">
         <Link
           href="/clients"
-          className="flex items-center gap-3 group"
+          aria-label="Repflow coach dashboard"
+          className="flex items-center gap-3 group rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
         >
-          <span className="font-bold text-lg tracking-tight">Repflow</span>
-          <span className="text-zinc-700">/</span>
-          <span className="text-zinc-400 group-hover:text-white transition text-sm">
+          <RepflowLogo size="md" />
+          <span aria-hidden className="hidden lg:inline text-zinc-700">/</span>
+          <span aria-hidden className="hidden lg:inline text-zinc-400 group-hover:text-white transition text-sm">
             Coach Dashboard
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="order-last w-full md:order-none md:w-auto flex items-center gap-1 text-sm">
           {[
             ["/clients", "Clients"],
             ["/leads", "New clients"],

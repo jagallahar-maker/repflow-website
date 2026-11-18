@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { auth } from "@/lib/firebase-client";
+import RepflowMark from "@/components/brand/RepflowMark";
 
 function SignInForm() {
   const router = useRouter();
@@ -73,6 +74,13 @@ function SignInForm() {
           className="text-sm text-zinc-400 hover:text-white transition"
         >
           ← Back to site
+        </Link>
+
+        <Link
+          href="/"
+          className="mx-auto mt-6 block w-fit rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+        >
+          <RepflowMark title="Repflow home" className="h-14 w-auto text-brand" />
         </Link>
 
         <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-8">
