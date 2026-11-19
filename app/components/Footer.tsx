@@ -7,7 +7,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-zinc-900 bg-black text-zinc-400">
       <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <Link
             href="/"
             aria-label="Repflow home"
@@ -15,6 +15,7 @@ export default function Footer() {
           >
             <RepflowLogo size="sm" />
           </Link>
+          <span className="text-zinc-500">The training app for everybody.</span>
           <span className="text-zinc-600">© {year}</span>
         </div>
 

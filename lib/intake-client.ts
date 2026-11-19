@@ -41,7 +41,15 @@ export function startAppCheck(): boolean {
   }
 }
 
-export type SubmitIntakeResult = { ok: true; coachName?: string; clearanceRecommended?: boolean };
+/** code / codeExpiresAt (build 36 functions): the person's single-use
+ * coach code, shown on the thank-you page. Missing from older functions. */
+export type SubmitIntakeResult = {
+  ok: true;
+  coachName?: string;
+  clearanceRecommended?: boolean;
+  code?: string;
+  codeExpiresAt?: string;
+};
 
 const _submitIntake = httpsCallable<Record<string, unknown>, SubmitIntakeResult>(
   functions, "submitIntake", { timeout: 30000 });

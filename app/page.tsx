@@ -9,7 +9,7 @@ export default function HomePage() {
         <RepflowMark className="mx-auto h-24 w-auto text-brand sm:h-32" />
         <h1 className="mt-8 text-5xl font-black tracking-tight">Repflow</h1>
         <p className="mt-4 text-zinc-400">
-          The fitness app for serious lifters.
+          The training app for everybody.
         </p>
         <div className="mt-8">
           <Link

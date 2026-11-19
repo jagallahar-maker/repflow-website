@@ -21,7 +21,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://repflowcoach.com"),
   title: "Repflow",
-  description: "Repflow Coaching",
+  // The search and link-preview text; the tagline matches the home page
+  // and the preview image.
+  description: "Repflow: the training app for everybody.",
   applicationName: "Repflow",
   openGraph: { type: "website", siteName: "Repflow" },
   twitter: { card: "summary_large_image" },

@@ -24,6 +24,16 @@ import {
   parseIntake,
 } from "@/lib/intake-format";
 import { intakeError, startAppCheck, submitIntake } from "@/lib/intake-client";
+import { APP_STORE_URL } from "@/lib/app-links";
+
+/** "December 19": the last day a code works (UTC, like the email). */
+function codeUntil(iso: string | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? null
+    : d.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+}
 
 /**
  * The coach intake form (app/c/[handle]/start). Six short steps with a
@@ -158,7 +168,7 @@ export default function IntakeForm({
   const [minor, setMinor] = useState(false);
   const [sending, setSending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const [done, setDone] = useState<{ clearance: boolean } | null>(null);
+  const [done, setDone] = useState<{ clearance: boolean; code?: string; until: string | null } | null>(null);
   const [verifyReady, setVerifyReady] = useState(true);
   const startedAt = useRef(0); // set when the form opens (below)
   const top = useRef<HTMLDivElement>(null);
@@ -255,7 +265,11 @@ export default function IntakeForm({
       } catch {
         // Ignore.
       }
-      setDone({ clearance: res.clearanceRecommended === true });
+      setDone({
+        clearance: res.clearanceRecommended === true,
+        code: typeof res.code === "string" && res.code ? res.code : undefined,
+        until: codeUntil(res.codeExpiresAt),
+      });
       scrollTop();
     } catch (err) {
       const x = intakeError(err);
@@ -303,8 +317,35 @@ export default function IntakeForm({
             {doctorNote(coach.firstName)}
           </p>
         )}
+        {/* Their own single-use code (submitIntake, build 36): joining with
+            it brings these answers and any plan the coach picks. */}
+        {done.code && (
+          <div className="rounded-xl border border-zinc-800 bg-black/40 p-4 space-y-3">
+            <p className="font-semibold text-white">Your coach code</p>
+            <p className="select-all break-all font-mono text-2xl tracking-[0.3em] text-[#9EFD06]">
+              {done.code}
+            </p>
+            <ol className="list-decimal space-y-1 pl-5 text-sm text-zinc-300">
+              <li>
+                Download{" "}
+                <a href={APP_STORE_URL} className="underline hover:text-white" target="_blank" rel="noreferrer">
+                  Repflow Training
+                </a>{" "}
+                from the App Store.
+              </li>
+              <li>Create your account.</li>
+              <li>When the app asks &ldquo;Working with a coach?&rdquo;, enter this code.</li>
+            </ol>
+            <p className="text-sm text-zinc-400">Already have the app? Enter the code in Settings → Coach.</p>
+            {done.until && (
+              <p className="text-xs text-zinc-500">The code works once, until {done.until}.</p>
+            )}
+          </div>
+        )}
         <p className="text-sm text-zinc-500">
-          We emailed you a confirmation with a link to delete your answers anytime.
+          {done.code
+            ? "We emailed you this code and a confirmation with a link to delete your answers anytime."
+            : "We emailed you a confirmation with a link to delete your answers anytime."}
         </p>
       </div>
     );

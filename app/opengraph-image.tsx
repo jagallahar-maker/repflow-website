@@ -37,7 +37,7 @@ export default function OpenGraphImage() {
             Repflow
           </div>
           <div style={{ fontSize: 40, color: "#a1a1aa", marginTop: 24 }}>
-            The fitness app for serious lifters.
+            The training app for everybody.
           </div>
         </div>
       </div>
