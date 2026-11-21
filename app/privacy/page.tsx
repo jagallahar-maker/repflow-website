@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
-          Effective date: May 3, 2026 · Last updated: November 14, 2026
+          Effective date: May 3, 2026 · Last updated: November 20, 2026
         </p>
 
         <div className="mt-10 space-y-6 text-zinc-300 leading-relaxed">
@@ -329,19 +329,20 @@ export default function PrivacyPage() {
               sent to Mapbox tile servers solely to render the visible map
               area; Mapbox does not retain it.{" "}
               <strong className="text-white">Anthropic</strong> (the Claude
-              AI model) for Ask Repflow, only if you turn it on (ages 18
-              and up): when you ask a question, we send your question, the
-              conversation so far, and a short summary of your own Repflow
-              data (age, sex, height, experience, goals, equipment,
-              injuries you entered, recent workouts and personal records,
-              weight trend, Strategy targets and logged intake, program,
-              goals, and Insights). We never send your name, email,
-              username, photos, videos, posts, friends, or Apple Health
-              data. Anthropic processes this to produce the answer and
-              doesn&apos;t use it to train its models; it keeps it only for
-              a limited time under its commercial terms. TODO(legal):
-              confirm Anthropic&apos;s retention period and data processing
-              terms.
+              AI model) for Ask Repflow and Build with AI, only if you turn
+              them on (ages 18 and up): when you ask a question or build a
+              workout, we send your request, the conversation so far, and a
+              short summary of your own Repflow data (age, sex, height,
+              experience, goals, equipment, injuries you entered, recent
+              workouts and personal records, weight trend, Strategy targets
+              and logged intake, program, goals, and Insights). We never
+              send your name, email, username, photos, videos, posts,
+              friends, or Apple Health data. If you turn on AI summaries in
+              your coach sharing settings, your coach can also have
+              Anthropic draft a summary or a training plan from the data you
+              share with them. Anthropic processes AI requests only to
+              produce the answer and doesn&apos;t use them to train its
+              models.
             </li>
             <li>
               <strong className="text-white">For legal reasons:</strong> if

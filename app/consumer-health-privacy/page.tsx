@@ -6,7 +6,7 @@ import type { Metadata } from "next";
  * Nevada SB 370, Connecticut). Linked from the footer on every page, the
  * Privacy Policy, the intake form's consent box and its confirmation
  * email (HEALTH_PRIVACY_PATH in lib/intake-format.ts).
- * TODO(legal): review before the App Store launch (CLAUDE.md pre-launch).
+ * A lawyer review is still pending (CLAUDE.md, after launch).
  */
 
 export const metadata: Metadata = {
@@ -32,8 +32,7 @@ export default function ConsumerHealthPrivacyPage() {
           Consumer Health Data Privacy Policy
         </h1>
         <p className="mt-3 text-sm text-zinc-500">
-          Effective date: November 14, 2026 · Plain-language draft pending
-          legal review
+          Effective date: November 14, 2026 · Last updated: November 20, 2026
         </p>
 
         <div className="mt-10 space-y-6 text-zinc-300 leading-relaxed">
@@ -155,7 +154,8 @@ export default function ConsumerHealthPrivacyPage() {
               </strong>{" "}
               Google (Firebase: storage, sign-in, our servers and email;
               reCAPTCHA on intake forms) and Anthropic (the Claude AI model),
-              only if you turn on Ask Repflow or allow AI on an intake form.
+              only if you turn on Ask Repflow, turn on AI summaries for your
+              coach, or allow AI on an intake form.
               The Privacy Policy lists what is sent to Anthropic, and what
               never is.
             </li>

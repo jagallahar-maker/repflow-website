@@ -4,7 +4,7 @@ import { termsOfService } from "../legal-content";
 
 export const metadata: Metadata = {
   title: "Terms of Service — Repflow",
-  description: "The terms for using Repflow (draft pending legal review).",
+  description: "The terms for using Repflow.",
 };
 
 export default function TermsPage() {

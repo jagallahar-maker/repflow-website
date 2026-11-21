@@ -5,7 +5,7 @@ import { communityGuidelines } from "../legal-content";
 export const metadata: Metadata = {
   title: "Community Guidelines — Repflow",
   description:
-    "What is and isn't allowed on Repflow, and how reporting and blocking work (draft pending legal review).",
+    "What is and isn't allowed on Repflow, and how reporting and blocking work.",
 };
 
 export default function CommunityGuidelinesPage() {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { LegalDoc } from "../legal-content";
 
-/** Renders a legal draft (terms, guidelines) in the privacy page's style. */
+/** Renders a legal document (terms, guidelines) in the privacy page's style. */
 export default function LegalDocPage({ doc }: { doc: LegalDoc }) {
   return (
     <main className="min-h-screen bg-black text-white">
@@ -17,10 +17,6 @@ export default function LegalDocPage({ doc }: { doc: LegalDoc }) {
           {doc.title}
         </h1>
         <p className="mt-3 text-sm text-zinc-500">Last updated: {doc.updated}</p>
-
-        <div className="mt-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-3 text-sm text-amber-200">
-          {doc.draftNotice}
-        </div>
 
         <div className="mt-10 space-y-4 text-zinc-300 leading-relaxed">
           {doc.intro.map((p, i) => (
